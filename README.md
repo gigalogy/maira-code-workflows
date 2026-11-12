@@ -9,6 +9,14 @@ project's existing linters, type checkers, and focused tests to validate a
 hypothesis. Repositories can append their own review guidance without forking
 the workflow.
 
+## Setup
+
+For a step-by-step organization setup guide you can share with clients, see
+[docs/github-organization-setup.md](docs/github-organization-setup.md). It
+covers Actions policy, organization variables and secrets, the caller
+workflow, optional GitHub App branding, repository-specific briefs, and
+troubleshooting.
+
 ## What it does
 
 1. **Finding pass** — reads the diff and the surrounding code, and reports at
