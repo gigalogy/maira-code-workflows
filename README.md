@@ -278,6 +278,56 @@ Rules and warnings:
   verification prompt and output schema always come from this repository and
   stay in lockstep with the extraction and publishing code.
 
+## Replay harness
+
+`scripts/replay_review.py` is an evaluation harness for the reviewer. It is not
+part of CI. It replays the same prompt CI builds against merged pull requests,
+runs both passes through the Claude Code CLI, and writes a report that puts
+model findings next to the human review comments.
+
+It checks out each PR head in a throwaway git worktree, so it needs a checkout
+of the target repository (or clones one) plus `gh`, the `claude` CLI, and
+gateway credentials:
+
+```bash
+export ANTHROPIC_BASE_URL=https://maira.example.com
+export ANTHROPIC_AUTH_TOKEN=...
+export ANTHROPIC_MODEL=g-maira-code
+```
+
+Run it from a checkout of the repository under review:
+
+```bash
+# from anywhere, pointing at a local checkout
+python3 /path/to/maira-lens-workflows/scripts/replay_review.py \
+  --repo-root ../maira-console-api --project-directory code --limit 10
+
+# or let it clone the target repository
+python3 scripts/replay_review.py --repo gigalogy/maira-console-api --limit 10
+```
+
+Useful flags:
+
+| Flag | Purpose |
+|---|---|
+| `--repo owner/name` | Target repository; cloned into a temporary directory. |
+| `--repo-root PATH` | Target repository checkout (default: current directory). |
+| `--project-directory PATH` | Directory containing the app manifests, relative to the repository root (default: `.`). |
+| `--repo-brief PATH` | Repository-specific brief, relative to the repository root (default: `.github/maira/pr-review.md`). |
+| `--brief-ref REF` | Ref to check out when cloning the target (default: its default branch). |
+| `--prompt-dir PATH` | Override the prompt files (default: `prompts/` in this repository). |
+| `--base BRANCH` | Base branch used to select merged PRs (default: target default branch). |
+| `--limit N` / `--pr N` | Number of merged PRs, or specific PR numbers. |
+| `--dry-run` | Build diffs and prompts without calling the model. |
+| `--judge` | Add a same-model true/false-positive triage pass (a hint, not ground truth). |
+| `--out PATH` | Output directory (default: `replay/<timestamp>`). |
+
+The harness appends the target repository's brief with the same wording and
+ordering as the workflow, so it evaluates the prompt CI actually uses. Like CI,
+dependency installation is best effort and Python-only; pass
+`--no-install-deps` for other stacks. Replays call the model, so they cost
+tokens.
+
 ## Security model
 
 - The job only runs for same-repository, non-draft, human-authored pull
@@ -348,6 +398,7 @@ Rules and warnings:
 prompts/pr-review.md
 prompts/pr-review-verify.md
 prompts/pr-review.schema.json
+scripts/replay_review.py
 ```
 
 ## License
