@@ -59,14 +59,14 @@ runs for `pull_request` events.
 The calling repository (or its organization) provides two repository variables
 and one secret:
 
-| Name | Kind | Example | Purpose |
-|---|---|---|---|
+| Name                  | Kind     | Example                     | Purpose                                                                |
+|-----------------------|----------|-----------------------------|------------------------------------------------------------------------|
 | `MAIRA_CODE_BASE_URL` | variable | `https://maira.example.com` | Gateway API root. Do not append `/v1`; the CLI appends `/v1/messages`. |
-| `MAIRA_CODE_MODEL` | variable | `g-maira-code` | Model exposed by the gateway. |
-| `MAIRA_CODE_TOKEN` | secret | — | Maira Hub API key, sent as the `X-Api-Key` header. |
-| `REVIEW_SHOW_COST` | variable | `false` | Set to `false` to hide the cost line in the summary. Shown by default. |
+| `MAIRA_CODE_MODEL`    | variable | `g-maira-code`              | Model exposed by the gateway.                                          |
+| `MAIRA_CODE_TOKEN`    | secret   | —                           | Maira Hub API key, sent as the `X-Api-Key` header.                     |
+| `REVIEW_SHOW_COST`    | variable | `false`                     | Set to `false` to hide the cost line in the summary. Shown by default. |
 
-Organization-level variables are inherited by repositories, so they can be set
+Repositories inherit organization-level variables, so they can be set
 once for every client repository. Missing values fail the job early with a
 message naming the missing item.
 
@@ -76,30 +76,30 @@ The review brief is generic: it reads the manifests and the surrounding code,
 follows the repository's conventions, and judges a pattern only by whether it
 causes a concrete defect in that stack. No language-specific prompt is needed.
 
-Dependency installation before the review is best effort and driven by the
+Dependency installation before the review is the best effort and driven by the
 manifests and lockfiles in `project_directory` (repository root by default):
 
-| Stack | Detected by | Install |
-|---|---|---|
-| Python | `uv.lock` | `uv sync --frozen` |
-| Python | `poetry.lock` | `poetry install` |
-| Python | `requirements.txt` | `pip install -r` |
-| Python | `pyproject.toml` / `setup.py` | `pip install -e` |
-| Node.js / TypeScript | `package-lock.json` | `npm ci` |
-| Node.js / TypeScript | `yarn.lock` | `yarn install --frozen-lockfile` |
-| Node.js / TypeScript | `pnpm-lock.yaml` | `pnpm install --frozen-lockfile` |
-| Node.js / TypeScript | `bun.lockb`, `bun.lock` | `bun install --frozen-lockfile` |
-| PHP | `composer.json` | `composer install` |
-| Java / Kotlin | `pom.xml` | `mvn dependency:go-offline` |
-| Java / Kotlin | `gradlew`, `build.gradle(.kts)` | `gradle dependencies` |
-| Go | `go.mod` | `go mod download` |
-| Rust | `Cargo.toml` | `cargo fetch` |
-| Ruby | `Gemfile` | `bundle install` |
-| .NET | `*.csproj`, `*.sln` | `dotnet restore` |
+| Stack                | Detected by                     | Install                          |
+|----------------------|---------------------------------|----------------------------------|
+| Python               | `uv.lock`                       | `uv sync --frozen`               |
+| Python               | `poetry.lock`                   | `poetry install`                 |
+| Python               | `requirements.txt`              | `pip install -r`                 |
+| Python               | `pyproject.toml` / `setup.py`   | `pip install -e`                 |
+| Node.js / TypeScript | `package-lock.json`             | `npm ci`                         |
+| Node.js / TypeScript | `yarn.lock`                     | `yarn install --frozen-lockfile` |
+| Node.js / TypeScript | `pnpm-lock.yaml`                | `pnpm install --frozen-lockfile` |
+| Node.js / TypeScript | `bun.lockb`, `bun.lock`         | `bun install --frozen-lockfile`  |
+| PHP                  | `composer.json`                 | `composer install`               |
+| Java / Kotlin        | `pom.xml`                       | `mvn dependency:go-offline`      |
+| Java / Kotlin        | `gradlew`, `build.gradle(.kts)` | `gradle dependencies`            |
+| Go                   | `go.mod`                        | `go mod download`                |
+| Rust                 | `Cargo.toml`                    | `cargo fetch`                    |
+| Ruby                 | `Gemfile`                       | `bundle install`                 |
+| .NET                 | `*.csproj`, `*.sln`             | `dotnet restore`                 |
 
 Notes:
 
-- A failed install is a warning, not a failure; the review still runs from
+- A failed installation is a warning, not a failure; the review still runs from
   source. Set `install_dependencies: false` for stacks not listed here.
 - In a monorepo, set `project_directory` to the directory holding the app's
   manifest. The diff is always taken across the whole repository.
@@ -112,25 +112,25 @@ Notes:
 
 ## Inputs
 
-| Input | Default | Description |
-|---|---|---|
-| `effort` | `high` | Claude effort level for both passes. |
-| `max_budget_usd` | `"10"` | Spending ceiling for one pass, shared across retry attempts. |
-| `python_version` | `"3.11"` | Python to install when a Python project is detected. Ignored otherwise. |
-| `project_directory` | `"."` | Directory containing the app and its manifest(s), relative to the repository root. |
-| `install_dependencies` | `true` | Install the project environment before reviewing. Set `false` for unsupported stacks. |
-| `prompt_repository` | `""` | Repository containing an additional, repository-specific review brief. |
-| `prompt_ref` | `""` | Full 40-character commit SHA of `prompt_repository`. Required when `prompt_repository` is set. Use the PR's base SHA. |
-| `prompt_path` | `.github/maira/pr-review.md` | Repository-specific brief, relative to `prompt_repository`. Appended to the default brief. |
-| `verify_prompt_path` | `prompts/pr-review-verify.md` | Verification brief, relative to this repository. Not overridable. |
-| `schema_path` | `prompts/pr-review.schema.json` | Output JSON schema, relative to this repository. Not overridable. |
+| Input                  | Default                         | Description                                                                                                           |
+|------------------------|---------------------------------|-----------------------------------------------------------------------------------------------------------------------|
+| `effort`               | `high`                          | Claude effort level for both passes.                                                                                  |
+| `max_budget_usd`       | `"10"`                          | Spending ceiling for one pass, shared across retry attempts.                                                          |
+| `python_version`       | `"3.11"`                        | Python to install when a Python project is detected. Ignored otherwise.                                               |
+| `project_directory`    | `"."`                           | Directory containing the app and its manifest(s), relative to the repository root.                                    |
+| `install_dependencies` | `true`                          | Install the project environment before reviewing. Set `false` for unsupported stacks.                                 |
+| `prompt_repository`    | `""`                            | Repository containing an additional, repository-specific review brief.                                                |
+| `prompt_ref`           | `""`                            | Full 40-character commit SHA of `prompt_repository`. Required when `prompt_repository` is set. Use the PR's base SHA. |
+| `prompt_path`          | `.github/maira/pr-review.md`    | Repository-specific brief, relative to `prompt_repository`. Appended to the default brief.                            |
+| `verify_prompt_path`   | `prompts/pr-review-verify.md`   | Verification brief, relative to this repository. Not overridable.                                                     |
+| `schema_path`          | `prompts/pr-review.schema.json` | Output JSON schema, relative to this repository. Not overridable.                                                     |
 
 ## Secrets
 
-| Secret | Required | Description |
-|---|---|---|
-| `MAIRA_CODE_TOKEN` | yes | Maira Hub API key, sent as the `X-Api-Key` header. |
-| `WORKFLOWS_TOKEN` | no | Read access to this repository when it is private, or to a separate private `prompt_repository`. Not needed when every source repository is public, or when the brief comes from the caller's own repository. Without it the job uses `github.token`, which cannot read other private repositories. |
+| Secret             | Required | Description                                                                                                                                                                                                                                                                                         |
+|--------------------|----------|-----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
+| `MAIRA_CODE_TOKEN` | yes      | Maira Hub API key, sent as the `X-Api-Key` header.                                                                                                                                                                                                                                                  |
+| `WORKFLOWS_TOKEN`  | no       | Read access to this repository when it is private, or to a separate private `prompt_repository`. Not needed when every source repository is public, or when the brief comes from the caller's own repository. Without it the job uses `github.token`, which cannot read other private repositories. |
 
 ## Repository-specific review guidance
 
@@ -183,7 +183,7 @@ jobs:
       MAIRA_CODE_TOKEN: ${{ secrets.MAIRA_CODE_TOKEN }}
 ```
 
-Rules and caveats:
+Rules and warnings:
 
 - `prompt_ref` must be a full 40-character commit SHA; branches and tags are
   rejected. Use the base SHA, never the head or a branch: the base commit
@@ -230,7 +230,7 @@ Rules and caveats:
 - Diffs larger than 400 KB are truncated in the prompt; the agent is told to
   read the remaining files directly.
 
-## Review behaviour
+## Review behavior
 
 - Each run posts a new review and a summary comment (updated in place on later
   runs), then resolves this workflow's inline threads from the previous run.
@@ -243,20 +243,20 @@ Rules and caveats:
 
 ## Troubleshooting
 
-| Symptom | Cause and fix |
-|---|---|
-| `Repository variable MAIRA_CODE_BASE_URL is not set` | Set the variable on the calling repository or its organization. |
-| `unrecognized_model` | `MAIRA_CODE_MODEL` is missing or wrong; it must match the model exposed by the gateway. |
-| `prompt_ref must be a full 40-character commit SHA` | Use `${{ github.event.pull_request.base.sha }}`, not a branch or tag. |
-| `... is missing from <repo>@<sha>` | The brief or prompt file does not exist at that commit. Land it first. |
-| Dependency install warning | The stack is unsupported or the install failed; the review continues. Set `install_dependencies: false` to silence it. |
-| Inline review failed, findings folded into the summary | GitHub rejected a comment position; the finding is still published in the summary. |
-| No review posted | The PR is a draft, authored by a bot, or from a fork; the gate skipped it. |
+| Symptom                                                | Cause and fix                                                                                                          |
+|--------------------------------------------------------|------------------------------------------------------------------------------------------------------------------------|
+| `Repository variable MAIRA_CODE_BASE_URL is not set`   | Set the variable on the calling repository or its organization.                                                        |
+| `unrecognized_model`                                   | `MAIRA_CODE_MODEL` is missing or wrong; it must match the model exposed by the gateway.                                |
+| `prompt_ref must be a full 40-character commit SHA`    | Use `${{ github.event.pull_request.base.sha }}`, not a branch or tag.                                                  |
+| `... is missing from <repo>@<sha>`                     | The brief or prompt file does not exist at that commit. Land it first.                                                 |
+| Dependency install warning                             | The stack is unsupported or the install failed; the review continues. Set `install_dependencies: false` to silence it. |
+| Inline review failed, findings folded into the summary | GitHub rejected a comment position; the finding is still published in the summary.                                     |
+| No review posted                                       | The PR is a draft, authored by a bot, or from a fork; the gate skipped it.                                             |
 
 ## Versioning and releases
 
 - Consumers should pin `uses:` to a full commit SHA from a release page.
-- Tags in the workflows repository are the upgrade boundary. Protect release
+- Tags in the workflow repository are the upgrade boundary. Protect release
   tags and `main` so a tag cannot be moved to unreviewed code: every caller
   passes its gateway key into this workflow.
 - To upgrade, update the pinned SHA in the caller workflow; no other change is
