@@ -1,4 +1,4 @@
-# maira-code-workflows
+# maira-lens-workflows
 
 Reusable GitHub Actions workflow for automated pull request review with the
 Maira Lens reviewer (model `g-maira-code`).
@@ -46,7 +46,7 @@ concurrency:
 
 jobs:
   review:
-    uses: gigalogy/maira-code-workflows/.github/workflows/pr-review-agent.yml@<full-sha-or-release-tag>
+    uses: gigalogy/maira-lens-workflows/.github/workflows/pr-review-agent.yml@<full-sha-or-release-tag>
     permissions:
       contents: write        # the resolve job needs this; the caller is the ceiling
       issues: write
@@ -182,7 +182,7 @@ The **author identity** on comments is controlled by the token that posts them:
 ```yaml
 jobs:
   review:
-    uses: gigalogy/maira-code-workflows/.github/workflows/pr-review-agent.yml@<full-sha-or-release-tag>
+    uses: gigalogy/maira-lens-workflows/.github/workflows/pr-review-agent.yml@<full-sha-or-release-tag>
     permissions:
       contents: write
       issues: write
@@ -242,7 +242,7 @@ Then call the workflow with the brief pinned to the PR's **base** SHA:
 ```yaml
 jobs:
   review:
-    uses: gigalogy/maira-code-workflows/.github/workflows/pr-review-agent.yml@<full-sha>
+    uses: gigalogy/maira-lens-workflows/.github/workflows/pr-review-agent.yml@<full-sha>
     permissions:
       contents: write
       issues: write
