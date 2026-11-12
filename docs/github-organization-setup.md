@@ -193,8 +193,23 @@ To post as **Maira Code** with your logo:
    - **Pull requests: Read and write**
    - Metadata read is implicit.
 5. Install the app on the repositories that call the reviewer.
-6. Create a **variable** `MAIRA_APP_ID` with the app ID, and a **secret**
-   `MAIRA_APP_PRIVATE_KEY` with the downloaded `.pem` private key.
+6. Store the credentials at the **organization** level (recommended when more
+   than one repository uses the reviewer) or at the repository level:
+
+   - **Variable** `MAIRA_APP_ID`: the app's **App ID**. Do not use the Client
+     ID or the client secret here.
+   - **Secret** `MAIRA_APP_PRIVATE_KEY`: the `.pem` private key generated on
+     the app's settings page.
+
+   If you create organization credentials, restrict their repository access to
+   the repositories that call the reviewer.
+
+   GitHub Apps authenticate server-to-server with the App ID and a private key
+   to mint installation tokens. The **client secret** is only used for OAuth
+   authorization-code flows and cannot substitute for the private key;
+   `actions/create-github-app-token` requires `app-id` and `private-key`. Treat
+   the private key as a long-lived credential: store it only as a secret,
+   restrict its repository access, and rotate it if it is ever exposed.
 7. Pass them to the workflow:
 
 ```yaml

@@ -169,9 +169,11 @@ The **author identity** on comments is controlled by the token that posts them:
    resolve review threads), **Issues: Read and write**, and **Pull requests:
    Read and write**. Metadata read is implicit.
 5. Install the app on the repositories that call this workflow.
-6. Store the app ID as the repository variable `MAIRA_APP_ID` and the
-   downloaded `.pem` private key as the repository secret
-   `MAIRA_APP_PRIVATE_KEY`.
+6. Store the App ID as the variable `MAIRA_APP_ID` and the downloaded `.pem`
+   private key as the secret `MAIRA_APP_PRIVATE_KEY`, at the organization or
+   repository level. Restrict organization credentials to the repositories
+   that use the reviewer. The app's client secret is only for OAuth flows and
+   cannot replace the private key.
 7. Pass them to the workflow:
 
 ```yaml
