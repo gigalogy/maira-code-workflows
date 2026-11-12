@@ -336,7 +336,7 @@ Rules and warnings:
 
 - Consumers should pin `uses:` to a full commit SHA from a release page.
 - Tags in the workflow repository are the upgrade boundary. Protect release
-  tags and `main` so a tag cannot be moved to unreviewed code: every caller
+  tags and `master` so a tag cannot be moved to unreviewed code: every caller
   passes its gateway key into this workflow.
 - To upgrade, update the pinned SHA in the caller workflow; no other change is
   required.
