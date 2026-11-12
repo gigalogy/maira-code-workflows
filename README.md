@@ -112,18 +112,19 @@ Notes:
 
 ## Inputs
 
-| Input                  | Default                         | Description                                                                                                           |
-|------------------------|---------------------------------|-----------------------------------------------------------------------------------------------------------------------|
-| `effort`               | `high`                          | Claude effort level for both passes.                                                                                  |
-| `max_budget_usd`       | `"10"`                          | Spending ceiling for one pass, shared across retry attempts.                                                          |
-| `python_version`       | `"3.11"`                        | Python to install when a Python project is detected. Ignored otherwise.                                               |
-| `project_directory`    | `"."`                           | Directory containing the app and its manifest(s), relative to the repository root.                                    |
-| `install_dependencies` | `true`                          | Install the project environment before reviewing. Set `false` for unsupported stacks.                                 |
-| `prompt_repository`    | `""`                            | Repository containing an additional, repository-specific review brief.                                                |
-| `prompt_ref`           | `""`                            | Full 40-character commit SHA of `prompt_repository`. Required when `prompt_repository` is set. Use the PR's base SHA. |
-| `prompt_path`          | `.github/maira/pr-review.md`    | Repository-specific brief, relative to `prompt_repository`. Appended to the default brief.                            |
-| `verify_prompt_path`   | `prompts/pr-review-verify.md`   | Verification brief, relative to this repository. Not overridable.                                                     |
-| `schema_path`          | `prompts/pr-review.schema.json` | Output JSON schema, relative to this repository. Not overridable.                                                     |
+| Input                  | Default                         | Description                                                                                                            |
+|------------------------|---------------------------------|------------------------------------------------------------------------------------------------------------------------|
+| `effort`               | `high`                          | Claude effort level for both passes.                                                                                   |
+| `max_budget_usd`       | `"10"`                          | Spending ceiling for one pass, shared across retry attempts.                                                           |
+| `python_version`       | `"3.11"`                        | Python to install when a Python project is detected. Ignored otherwise.                                                |
+| `project_directory`    | `"."`                           | Directory containing the app and its manifest(s), relative to the repository root.                                     |
+| `install_dependencies` | `true`                          | Install the project environment before reviewing. Set `false` for unsupported stacks.                                  |
+| `prompt_repository`    | `""`                            | Repository containing an additional, repository-specific review brief.                                                 |
+| `prompt_ref`           | `""`                            | Full 40-character commit SHA of `prompt_repository`. Required when `prompt_repository` is set. Use the PR's base SHA.  |
+| `prompt_path`          | `.github/maira/pr-review.md`    | Repository-specific brief, relative to `prompt_repository`. Combined with the default brief according to `brief_mode`. |
+| `brief_mode`           | `append`                        | How the repository-specific brief combines with the default brief: `append` or `replace`.                              |
+| `verify_prompt_path`   | `prompts/pr-review-verify.md`   | Verification brief, relative to this repository. Not overridable.                                                      |
+| `schema_path`          | `prompts/pr-review.schema.json` | Output JSON schema, relative to this repository. Not overridable.                                                      |
 
 ## Secrets
 
@@ -134,9 +135,9 @@ Notes:
 
 ## Repository-specific review guidance
 
-The default brief is intentionally generic. A repository can append its own
-guidance — stack, layout, domain invariants, what is critical — without
-maintaining a fork of the workflow.
+The default brief is intentionally generic. A repository can add its own
+guidance — stack, layout, domain invariants, what is critical — or replace the
+default brief entirely, without maintaining a fork of the workflow.
 
 Create a Markdown file in the calling repository, for example
 `.github/maira/pr-review.md`:
@@ -189,9 +190,14 @@ Rules and warnings:
   rejected. Use the base SHA, never the head or a branch: the base commit
   predates the pull request, so a pull request cannot rewrite the guidance that
   reviews it.
-- The brief is **appended** to the default brief. The default brief keeps the
-  severity scale, untrusted-input rules, and output contract, so repository
-  guidance can add context but cannot weaken them.
+- `brief_mode: append` (the default) keeps the default brief and appends the
+  repository brief under `## Repository-specific guidance`. The severity scale,
+  untrusted-input rules, and output contract are preserved, so a short brief
+  with stack and domain context is enough.
+- `brief_mode: replace` uses the repository brief as the only review
+  instructions. Set it only with a complete brief: the output schema still
+  enforces the JSON shape, but the severity scale, confidence threshold, and
+  untrusted-input rules are no longer included, so the brief must restate them.
 - The brief must already exist in the base commit. Land it in a separate merged
   pull request before enabling the reviewer, otherwise the first run fails with
   `missing from <repo>@<sha>`.

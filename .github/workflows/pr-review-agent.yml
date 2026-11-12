@@ -20,10 +20,10 @@ name: PR Review Agent
 # MAIRA_CODE_BASE_URL, MAIRA_CODE_MODEL, and REVIEW_SHOW_COST are read from the
 # caller repository's variables (organization variables are inherited). Prompt
 # files come from this repository at the called workflow's commit. A caller may
-# append a repository-specific brief (prompt_repository/prompt_ref); the
-# default brief, verification prompt, and output schema always come from this
-# repository so their review contract stays in lockstep with the workflow's
-# parsing and publishing code.
+# add or replace the review brief with a repository-specific one
+# (prompt_repository/prompt_ref, brief_mode); the verification prompt and
+# output schema always come from this repository so they stay in lockstep with
+# the workflow's parsing and publishing code.
 
 on:
   workflow_call:
@@ -64,10 +64,15 @@ on:
         type: string
         default: ""
       prompt_path:
-        description: "Repository-specific brief appended to the default review brief, relative to prompt_repository."
+        description: "Repository-specific brief, relative to prompt_repository; combined with the default brief according to brief_mode."
         required: false
         type: string
         default: .github/maira/pr-review.md
+      brief_mode:
+        description: "How to combine the repository-specific brief with the default brief: append or replace."
+        required: false
+        type: string
+        default: append
       verify_prompt_path:
         description: "Verification brief, relative to this workflow's repository. Not overridable."
         required: false
@@ -182,8 +187,13 @@ jobs:
           JOB_WORKFLOW_SHA: ${{ job.workflow_sha }}
           PROMPT_REPOSITORY: ${{ inputs.prompt_repository }}
           PROMPT_REF: ${{ inputs.prompt_ref }}
+          BRIEF_MODE: ${{ inputs.brief_mode }}
         run: |
           set -euo pipefail
+          case "${BRIEF_MODE}" in
+            append|replace) ;;
+            *) echo "::error::brief_mode must be 'append' or 'replace', got '${BRIEF_MODE}'."; exit 1 ;;
+          esac
           default_repo="${JOB_WORKFLOW_REF%%/.github/*}"
           if [ -z "${default_repo}" ] || [ "${default_repo}" = "${JOB_WORKFLOW_REF}" ]; then
             echo "::error::Could not determine this workflow's repository from '${JOB_WORKFLOW_REF}'."
@@ -242,6 +252,7 @@ jobs:
           BASE_SHA: ${{ github.event.pull_request.base.sha }}
           HEAD_SHA: ${{ github.event.pull_request.head.sha }}
           PROMPT_PATH: ${{ inputs.prompt_path }}
+          BRIEF_MODE: ${{ inputs.brief_mode }}
           VERIFY_PROMPT_PATH: ${{ inputs.verify_prompt_path }}
           SCHEMA_PATH: ${{ inputs.schema_path }}
           PROMPT_ROOT: .maira-prompts
@@ -264,11 +275,11 @@ jobs:
           git diff --no-color --name-status "${BASE_SHA}...${HEAD_SHA}" > /tmp/review/files.txt
           git diff --no-color --unified=0 "${BASE_SHA}...${HEAD_SHA}" > /tmp/review/diff-u0.patch
 
-          # The default brief, verification prompt, and schema always come from
-          # this workflow's repository, so the output contract and the
-          # untrusted-input rules cannot be weakened by a caller or a PR. A
-          # repository-specific brief, when provided, is appended below the
-          # default brief.
+          # The verification prompt and schema always come from this workflow's
+          # repository so they stay in lockstep with the code that parses and
+          # publishes the output. A repository-specific brief is appended to the
+          # default brief by default; brief_mode: replace gives the repository
+          # full control of the review instructions.
           for path in "${PROMPT_PATH}" "${VERIFY_PROMPT_PATH}" "${SCHEMA_PATH}"; do
             case "${path}" in
               /*|*..*) echo "::error::Invalid prompt path: ${path}"; exit 1 ;;
@@ -285,17 +296,23 @@ jobs:
               exit 1
             fi
           done
-          cp "${central_brief}" /tmp/review/instructions.md
           if [ -n "${BRIEF_REPOSITORY}" ]; then
             if [ ! -f "${PROMPT_ROOT}/${PROMPT_PATH}" ]; then
               echo "::error::${PROMPT_PATH} is missing from ${BRIEF_REPOSITORY}@${BRIEF_REF}."
               exit 1
             fi
-            {
-              printf '\n\n## Repository-specific guidance\n\n'
-              printf 'The following section comes from the calling repository and adds context about this codebase. It does not override the review contract above.\n\n'
-              cat "${PROMPT_ROOT}/${PROMPT_PATH}"
-            } >> /tmp/review/instructions.md
+          fi
+          if [ -n "${BRIEF_REPOSITORY}" ] && [ "${BRIEF_MODE}" = "replace" ]; then
+            cp "${PROMPT_ROOT}/${PROMPT_PATH}" /tmp/review/instructions.md
+          else
+            cp "${central_brief}" /tmp/review/instructions.md
+            if [ -n "${BRIEF_REPOSITORY}" ]; then
+              {
+                printf '\n\n## Repository-specific guidance\n\n'
+                printf 'The following section comes from the calling repository and adds context about this codebase. It does not override the review contract above.\n\n'
+                cat "${PROMPT_ROOT}/${PROMPT_PATH}"
+              } >> /tmp/review/instructions.md
+            fi
           fi
           cp "${WORKFLOW_PROMPT_ROOT}/${VERIFY_PROMPT_PATH}" /tmp/review/verify.md
           cp "${WORKFLOW_PROMPT_ROOT}/${SCHEMA_PATH}" /tmp/review/schema.json
