@@ -7,7 +7,7 @@ optional branding and repository-specific guidance, verification, and
 troubleshooting. It can be shared with client organizations as-is.
 
 The reviewer is published as a reusable workflow at
-`gigalogy/maira-code-workflows`. Your repositories call it; nothing is
+`gigalogy/maira-lens-workflows`. Your repositories call it; nothing is
 installed into your codebase.
 
 > This guide uses the `MAIRA_LENS_*` configuration names. They require a
@@ -35,7 +35,7 @@ your repository
         |
         | calls at a pinned release
         v
-gigalogy/maira-code-workflows                 <- reusable workflow (public)
+gigalogy/maira-lens-workflows                 <- reusable workflow (public)
   .github/workflows/pr-review-agent.yml
         |
         | reads organization/repository configuration
@@ -60,7 +60,7 @@ Open **Organization settings → Actions → General**.
   add:
 
   ```text
-  gigalogy/maira-code-workflows/.github/workflows/pr-review-agent.yml@*
+  gigalogy/maira-lens-workflows/.github/workflows/pr-review-agent.yml@*
   actions/checkout@*
   actions/setup-python@*
   actions/github-script@*
@@ -130,7 +130,7 @@ concurrency:
 
 jobs:
   review:
-    uses: gigalogy/maira-code-workflows/.github/workflows/pr-review-agent.yml@<full-sha-or-release-tag>
+    uses: gigalogy/maira-lens-workflows/.github/workflows/pr-review-agent.yml@<full-sha-or-release-tag>
     permissions:
       contents: write        # the thread-resolution job needs this
       issues: write

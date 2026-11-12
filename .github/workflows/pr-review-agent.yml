@@ -4,7 +4,7 @@ name: Maira Lens PR Review
 #
 #   jobs:
 #     review:
-#       uses: gigalogy/maira-code-workflows/.github/workflows/pr-review-agent.yml@<sha>
+#       uses: gigalogy/maira-lens-workflows/.github/workflows/pr-review-agent.yml@<sha>
 #       permissions:
 #         contents: write        # the resolve job needs this; caller is the ceiling
 #         issues: write
