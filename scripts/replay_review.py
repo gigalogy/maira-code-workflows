@@ -458,7 +458,7 @@ def review_argv(args: argparse.Namespace, schema_text: str) -> list[str]:
 
 
 def judge_argv(args: argparse.Namespace) -> list[str]:
-    return [
+    argv = [
         "claude",
         "-p",
         "--model",
@@ -477,6 +477,9 @@ def judge_argv(args: argparse.Namespace) -> list[str]:
         "--json-schema",
         json.dumps(JUDGE_SCHEMA),
     ]
+    if args.max_budget_usd is not None:
+        argv.extend(["--max-budget-usd", str(args.max_budget_usd)])
+    return argv
 
 
 # ---------------------------------------------------------------------------
