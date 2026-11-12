@@ -95,3 +95,7 @@ prompts/pr-review.md
 prompts/pr-review-verify.md
 prompts/pr-review.schema.json
 ```
+
+## License
+
+[MIT](LICENSE)
