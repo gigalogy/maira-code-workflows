@@ -48,18 +48,18 @@ Pin `uses:` to a full commit SHA (recommended) or a release tag, never a branch.
 | `python_version` | `"3.11"` | Python used to set up the project environment. |
 | `project_directory` | `code` | Directory containing the application and its lockfile. |
 | `install_dependencies` | `true` | Install the project environment before reviewing. Set `false` for non-Python repos. |
-| `prompt_repository` | `""` | Repository holding the prompt files. Defaults to this repository. |
-| `prompt_ref` | `""` | Ref of `prompt_repository`. Defaults to this workflow's commit; required when `prompt_repository` is set. |
-| `prompt_path` | `prompts/pr-review.md` | Review brief, relative to `prompt_repository`. |
-| `verify_prompt_path` | `prompts/pr-review-verify.md` | Verification brief, relative to `prompt_repository`. |
-| `schema_path` | `prompts/pr-review.schema.json` | Output JSON schema, relative to `prompt_repository`. |
+| `prompt_repository` | `""` | Repository holding the review brief. Defaults to this repository. |
+| `prompt_ref` | `""` | Full 40-character commit SHA of `prompt_repository`. Required when `prompt_repository` is set. Pin the pull request's base SHA. |
+| `prompt_path` | `prompts/pr-review.md` | Review brief, relative to the brief source. |
+| `verify_prompt_path` | `prompts/pr-review-verify.md` | Verification brief, relative to this repository. Not overridable. |
+| `schema_path` | `prompts/pr-review.schema.json` | Output JSON schema, relative to this repository. Not overridable. |
 
 ## Secrets
 
 | Secret | Required | Description |
 |---|---|---|
 | `MAIRA_CODE_TOKEN` | yes | Maira Hub API key, sent as the `X-Api-Key` header. |
-| `WORKFLOWS_TOKEN` | no | Token with read access to `prompt_repository`. Only needed when this repository is private. Without it the job uses `github.token`, which cannot read other private repositories. |
+| `WORKFLOWS_TOKEN` | no | Token with read access to this repository when it is private, or to a separate private `prompt_repository`. Not needed when the brief comes from the caller's own repository, or when every source repository is public. Without it the job uses `github.token`, which cannot read other private repositories. |
 
 ## Repository variables
 
@@ -75,9 +75,36 @@ Organization-level variables are inherited by repositories, so these can be set 
 
 ## Prompts
 
-The reviewer loads its brief, verification brief, and output schema from this repository at the called workflow's commit. The prompt files are therefore trusted by construction and identical across callers.
+By default the reviewer loads all three files from this repository at the called workflow's commit. They are trusted by construction and identical across callers.
 
-To use a repository-specific brief, set `prompt_repository` and `prompt_ref` to a repository and immutable ref that contain the three files. If you point them at the caller itself, use the base commit SHA so a pull request cannot rewrite the reviewer's instructions.
+### Repository-specific review brief
+
+Only the review brief is overridable. Set `prompt_repository` to the caller and `prompt_ref` to the pull request's **base** SHA:
+
+```yaml
+jobs:
+  review:
+    uses: gigalogy/maira-code-workflows/.github/workflows/pr-review-agent.yml@<full-sha>
+    permissions:
+      contents: write
+      issues: write
+      pull-requests: write
+    with:
+      prompt_repository: ${{ github.repository }}
+      prompt_ref: ${{ github.event.pull_request.base.sha }}
+      prompt_path: .github/maira/pr-review.md
+    secrets:
+      MAIRA_CODE_TOKEN: ${{ secrets.MAIRA_CODE_TOKEN }}
+```
+
+`prompt_ref` must be a full 40-character commit SHA; branches and tags are rejected. Use the base SHA, never the head or a branch: the base commit predates the pull request, so a pull request cannot rewrite the instructions that review it. A branch or tag could also move between the calling workflow and the prompt checkout.
+
+Two other consequences:
+
+- The verification prompt and output schema always come from this repository. They are coupled to the workflow's extraction and publishing code, so a repository-local copy could silently drop findings.
+- The brief must already exist in the base commit. Land it in a separate merged pull request before enabling the reviewer, otherwise the first run fails with "missing from `<repo>@<sha>`".
+
+When the brief comes from the caller's own repository, `github.token` has read access even for a private repository, so `WORKFLOWS_TOKEN` is not required.
 
 ## Behaviour notes
 

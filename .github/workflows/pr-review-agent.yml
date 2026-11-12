@@ -19,8 +19,10 @@ name: PR Review Agent
 #
 # MAIRA_CODE_BASE_URL, MAIRA_CODE_MODEL, and REVIEW_SHOW_COST are read from the
 # caller repository's variables (organization variables are inherited). Prompt
-# files come from this repository at the called workflow's commit unless
-# prompt_repository/prompt_ref override them.
+# files come from this repository at the called workflow's commit. A caller may
+# override only the review brief (prompt_repository/prompt_ref); the
+# verification prompt and output schema always come from this repository so
+# they stay in lockstep with the workflow's parsing and publishing code.
 
 on:
   workflow_call:
@@ -51,27 +53,27 @@ on:
         type: boolean
         default: true
       prompt_repository:
-        description: "Repository holding the prompt files. Defaults to this workflow's repository."
+        description: "Repository holding the review brief. Defaults to this workflow's repository."
         required: false
         type: string
         default: ""
       prompt_ref:
-        description: "Ref of prompt_repository. Defaults to this workflow's commit; required when prompt_repository is set."
+        description: "Full 40-character commit SHA of prompt_repository. Required when prompt_repository is set; pin the PR's base SHA so a PR cannot rewrite its own brief."
         required: false
         type: string
         default: ""
       prompt_path:
-        description: "Review brief, relative to prompt_repository."
+        description: "Review brief, relative to prompt_repository (or this workflow's repository)."
         required: false
         type: string
         default: prompts/pr-review.md
       verify_prompt_path:
-        description: "Verification brief, relative to prompt_repository."
+        description: "Verification brief, relative to this workflow's repository. Not overridable."
         required: false
         type: string
         default: prompts/pr-review-verify.md
       schema_path:
-        description: "JSON schema for the review output, relative to prompt_repository."
+        description: "JSON schema for the review output, relative to this workflow's repository. Not overridable."
         required: false
         type: string
         default: prompts/pr-review.schema.json
@@ -172,7 +174,7 @@ jobs:
           fetch-depth: 0
           persist-credentials: false
 
-      - name: Resolve prompt source
+      - name: Resolve prompt sources
         id: prompt_source
         env:
           JOB_WORKFLOW_REF: ${{ job.workflow_ref }}
@@ -186,25 +188,50 @@ jobs:
             echo "::error::Could not determine this workflow's repository from '${JOB_WORKFLOW_REF}'."
             exit 1
           fi
-          if [ -n "${PROMPT_REPOSITORY}" ] && [ -z "${PROMPT_REF}" ]; then
-            echo "::error::prompt_ref is required when prompt_repository is set."
-            exit 1
-          fi
-          repository="${PROMPT_REPOSITORY:-$default_repo}"
-          if [ -n "${PROMPT_REF}" ]; then
-            ref="${PROMPT_REF}"
+          default_ref="${JOB_WORKFLOW_SHA:-${JOB_WORKFLOW_REF##*@}}"
+          if [ -n "${PROMPT_REPOSITORY}" ]; then
+            if [ -z "${PROMPT_REF}" ]; then
+              echo "::error::prompt_ref is required when prompt_repository is set."
+              exit 1
+            fi
+            # A branch or tag can be moved between the caller's workflow run and
+            # this checkout, and a PR's head SHA is attacker-controlled. Only an
+            # immutable commit SHA ensures the brief predates the PR.
+            if ! printf '%s' "${PROMPT_REF}" | grep -Eq '^[0-9a-f]{40}$'; then
+              echo "::error::prompt_ref must be a full 40-character commit SHA (use the PR's base SHA), got '${PROMPT_REF}'."
+              exit 1
+            fi
+            brief_repo="${PROMPT_REPOSITORY}"
+            brief_ref="${PROMPT_REF}"
           else
-            ref="${JOB_WORKFLOW_SHA:-${JOB_WORKFLOW_REF##*@}}"
+            brief_repo="${default_repo}"
+            brief_ref="${default_ref}"
           fi
-          echo "repository=${repository}" >> "$GITHUB_OUTPUT"
-          echo "ref=${ref}" >> "$GITHUB_OUTPUT"
+          {
+            echo "brief_repository=${brief_repo}"
+            echo "brief_ref=${brief_ref}"
+            echo "workflow_repository=${default_repo}"
+            echo "workflow_ref=${default_ref}"
+          } >> "$GITHUB_OUTPUT"
 
-      - name: Check out review prompts
+      - name: Check out the review brief
         uses: actions/checkout@v5
         with:
-          repository: ${{ steps.prompt_source.outputs.repository }}
-          ref: ${{ steps.prompt_source.outputs.ref }}
+          repository: ${{ steps.prompt_source.outputs.brief_repository }}
+          ref: ${{ steps.prompt_source.outputs.brief_ref }}
           path: .maira-prompts
+          token: ${{ secrets.WORKFLOWS_TOKEN || github.token }}
+          persist-credentials: false
+
+      # The verification prompt and output schema are coupled to extract.py and
+      # the publish step, so they always come from this repository at the called
+      # workflow's commit, never from the PR or the caller.
+      - name: Check out the verification prompt and schema
+        uses: actions/checkout@v5
+        with:
+          repository: ${{ steps.prompt_source.outputs.workflow_repository }}
+          ref: ${{ steps.prompt_source.outputs.workflow_ref }}
+          path: .maira-workflow-prompts
           token: ${{ secrets.WORKFLOWS_TOKEN || github.token }}
           persist-credentials: false
 
@@ -216,8 +243,11 @@ jobs:
           VERIFY_PROMPT_PATH: ${{ inputs.verify_prompt_path }}
           SCHEMA_PATH: ${{ inputs.schema_path }}
           PROMPT_ROOT: .maira-prompts
-          PROMPT_REPOSITORY: ${{ steps.prompt_source.outputs.repository }}
-          PROMPT_REF: ${{ steps.prompt_source.outputs.ref }}
+          WORKFLOW_PROMPT_ROOT: .maira-workflow-prompts
+          BRIEF_REPOSITORY: ${{ steps.prompt_source.outputs.brief_repository }}
+          BRIEF_REF: ${{ steps.prompt_source.outputs.brief_ref }}
+          WORKFLOW_REPOSITORY: ${{ steps.prompt_source.outputs.workflow_repository }}
+          WORKFLOW_REF: ${{ steps.prompt_source.outputs.workflow_ref }}
         run: |
           set -euo pipefail
           mkdir -p /tmp/review
@@ -232,21 +262,27 @@ jobs:
           git diff --no-color --name-status "${BASE_SHA}...${HEAD_SHA}" > /tmp/review/files.txt
           git diff --no-color --unified=0 "${BASE_SHA}...${HEAD_SHA}" > /tmp/review/diff-u0.patch
 
-          # Prompts come from the workflows repository at the called workflow's
-          # commit (or the caller-supplied prompt_repository/prompt_ref), never
-          # from the PR.
+          # The brief comes from the caller's chosen repository and immutable
+          # SHA when set; the verification prompt and schema always come from
+          # this workflow's repository. None of them come from the PR.
           for path in "${PROMPT_PATH}" "${VERIFY_PROMPT_PATH}" "${SCHEMA_PATH}"; do
             case "${path}" in
               /*|*..*) echo "::error::Invalid prompt path: ${path}"; exit 1 ;;
             esac
-            if [ ! -f "${PROMPT_ROOT}/${path}" ]; then
-              echo "::error::${path} is missing from ${PROMPT_REPOSITORY}@${PROMPT_REF}."
+          done
+          if [ ! -f "${PROMPT_ROOT}/${PROMPT_PATH}" ]; then
+            echo "::error::${PROMPT_PATH} is missing from ${BRIEF_REPOSITORY}@${BRIEF_REF}."
+            exit 1
+          fi
+          for path in "${VERIFY_PROMPT_PATH}" "${SCHEMA_PATH}"; do
+            if [ ! -f "${WORKFLOW_PROMPT_ROOT}/${path}" ]; then
+              echo "::error::${path} is missing from ${WORKFLOW_REPOSITORY}@${WORKFLOW_REF}."
               exit 1
             fi
           done
           cp "${PROMPT_ROOT}/${PROMPT_PATH}" /tmp/review/instructions.md
-          cp "${PROMPT_ROOT}/${VERIFY_PROMPT_PATH}" /tmp/review/verify.md
-          cp "${PROMPT_ROOT}/${SCHEMA_PATH}" /tmp/review/schema.json
+          cp "${WORKFLOW_PROMPT_ROOT}/${VERIFY_PROMPT_PATH}" /tmp/review/verify.md
+          cp "${WORKFLOW_PROMPT_ROOT}/${SCHEMA_PATH}" /tmp/review/schema.json
 
           cat > /tmp/review/extract.py <<'PY'
           import json
