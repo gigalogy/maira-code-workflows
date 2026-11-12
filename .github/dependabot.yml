@@ -1,0 +1,21 @@
+version: 2
+
+updates:
+  # Keep the actions used by the review workflow up to date. Dependabot cannot
+  # track the pinned Claude Code npm version installed in the workflow's run
+  # step; bump that pin manually after checking the CLI flags it uses.
+  - package-ecosystem: "github-actions"
+    directory: "/"
+    target-branch: "develop"
+    schedule:
+      interval: "weekly"
+      day: "monday"
+      time: "06:00"
+      timezone: "Etc/UTC"
+    open-pull-requests-limit: 5
+    commit-message:
+      prefix: "ci"
+    groups:
+      github-actions:
+        patterns:
+          - "*"
