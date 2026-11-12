@@ -1,4 +1,4 @@
-name: PR Review Agent
+name: Maira Code PR Review
 
 # Reusable reviewer. Call it from another repository's workflow:
 #
@@ -24,6 +24,10 @@ name: PR Review Agent
 # (prompt_repository/prompt_ref, brief_mode); the verification prompt and
 # output schema always come from this repository so they stay in lockstep with
 # the workflow's parsing and publishing code.
+#
+# Review feedback is posted with GITHUB_TOKEN (github-actions[bot]) by default.
+# Set app_id and app_private_key to author it as a GitHub App instead, for
+# example an app named "Maira Code" with the Maira Code logo.
 
 on:
   workflow_call:
@@ -53,6 +57,11 @@ on:
         required: false
         type: boolean
         default: true
+      app_id:
+        description: "Optional GitHub App ID used to author review feedback. Leave empty to post as github-actions[bot]."
+        required: false
+        type: string
+        default: ""
       prompt_repository:
         description: "Repository containing an additional, repository-specific review brief. The default brief always applies."
         required: false
@@ -87,6 +96,9 @@ on:
       MAIRA_CODE_TOKEN:
         description: "Maira Hub API key, sent as the X-Api-Key header."
         required: true
+      app_private_key:
+        description: "Private key for app_id. Required when app_id is set."
+        required: false
       WORKFLOWS_TOKEN:
         description: "Token with read access to prompt_repository. Only needed when that repository is private."
         required: false
@@ -96,6 +108,7 @@ permissions:
 
 jobs:
   review-agent:
+    name: Maira Code review
     # The caller decides when this runs (event types, REVIEW_ENGINE, labels).
     # These safety gates must hold for every caller.
     if: >
@@ -153,6 +166,8 @@ jobs:
           REVIEW_BASE_URL: ${{ vars.MAIRA_CODE_BASE_URL }}
           REVIEW_MODEL: ${{ vars.MAIRA_CODE_MODEL }}
           REVIEW_TOKEN: ${{ secrets.MAIRA_CODE_TOKEN }}
+          REVIEW_APP_ID: ${{ inputs.app_id }}
+          REVIEW_APP_PRIVATE_KEY: ${{ secrets.app_private_key }}
         run: |
           set -uo pipefail
           missing=0
@@ -166,6 +181,10 @@ jobs:
           fi
           if [ -z "${REVIEW_TOKEN:-}" ]; then
             echo "::error::Repository secret MAIRA_CODE_TOKEN is not set."
+            missing=1
+          fi
+          if [ -n "${REVIEW_APP_ID:-}" ] && [ -z "${REVIEW_APP_PRIVATE_KEY:-}" ]; then
+            echo "::error::app_id is set but the app_private_key secret is empty."
             missing=1
           fi
           if [ "${missing}" -ne 0 ]; then
@@ -770,6 +789,20 @@ jobs:
               json.dump({k: sorted(set(v)) for k, v in added.items()}, handle)
           PY
 
+      # Optional branding: an installation token from a GitHub App named
+      # "Maira Code" authors the review and its comments under that name and
+      # avatar. Without app_id the workflow falls back to GITHUB_TOKEN, which
+      # GitHub always displays as github-actions[bot].
+      - name: Mint the review app token
+        id: app_token
+        if: inputs.app_id != ''
+        uses: actions/create-github-app-token@v2
+        with:
+          app-id: ${{ inputs.app_id }}
+          private-key: ${{ secrets.app_private_key }}
+          owner: ${{ github.repository_owner }}
+          repositories: ${{ github.event.repository.name }}
+
       - name: Publish the review
         id: publish
         uses: actions/github-script@v8
@@ -779,11 +812,11 @@ jobs:
           REVIEW_SHOW_COST: ${{ vars.REVIEW_SHOW_COST }}
           REVIEW_EFFORT: ${{ inputs.effort }}
         with:
-          github-token: ${{ secrets.GITHUB_TOKEN }}
+          github-token: ${{ steps.app_token.outputs.token || secrets.GITHUB_TOKEN }}
           script: |
             const fs = require('fs');
 
-            const marker = '<!-- claude-code-review -->';
+            const marker = '<!-- maira-code-review-summary -->';
             const brand = 'Maira Code';
             const severityOrder = { critical: 0, high: 1, medium: 2, low: 3 };
             const severityLabel = {
@@ -1048,12 +1081,22 @@ jobs:
       contents: write
       pull-requests: write
     steps:
+      - name: Mint the review app token
+        id: app_token
+        if: inputs.app_id != ''
+        uses: actions/create-github-app-token@v2
+        with:
+          app-id: ${{ inputs.app_id }}
+          private-key: ${{ secrets.app_private_key }}
+          owner: ${{ github.repository_owner }}
+          repositories: ${{ github.event.repository.name }}
+
       - name: Resolve superseded Maira Code threads
         uses: actions/github-script@v8
         env:
           STALE_THREADS: ${{ needs.review-agent.outputs.stale_threads }}
         with:
-          github-token: ${{ secrets.GITHUB_TOKEN }}
+          github-token: ${{ steps.app_token.outputs.token || secrets.GITHUB_TOKEN }}
           script: |
             const ids = JSON.parse(process.env.STALE_THREADS || '[]');
             const resolveMutation = `mutation ($threadId: ID!) {

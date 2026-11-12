@@ -119,6 +119,7 @@ Notes:
 | `python_version`       | `"3.11"`                        | Python to install when a Python project is detected. Ignored otherwise.                                                |
 | `project_directory`    | `"."`                           | Directory containing the app and its manifest(s), relative to the repository root.                                     |
 | `install_dependencies` | `true`                          | Install the project environment before reviewing. Set `false` for unsupported stacks.                                  |
+| `app_id`               | `""`                            | Optional GitHub App ID used to author review feedback. Leave empty to post as `github-actions[bot]`.                   |
 | `prompt_repository`    | `""`                            | Repository containing an additional, repository-specific review brief.                                                 |
 | `prompt_ref`           | `""`                            | Full 40-character commit SHA of `prompt_repository`. Required when `prompt_repository` is set. Use the PR's base SHA.  |
 | `prompt_path`          | `.github/maira/pr-review.md`    | Repository-specific brief, relative to `prompt_repository`. Combined with the default brief according to `brief_mode`. |
@@ -131,7 +132,64 @@ Notes:
 | Secret             | Required | Description                                                                                                                                                                                                                                                                                         |
 |--------------------|----------|-----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
 | `MAIRA_CODE_TOKEN` | yes      | Maira Hub API key, sent as the `X-Api-Key` header.                                                                                                                                                                                                                                                  |
+| `app_private_key`  | no       | Private key for `app_id`. Required when `app_id` is set.                                                                                                                                                                                                                                            |
 | `WORKFLOWS_TOKEN`  | no       | Read access to this repository when it is private, or to a separate private `prompt_repository`. Not needed when every source repository is public, or when the brief comes from the caller's own repository. Without it the job uses `github.token`, which cannot read other private repositories. |
+
+## Branding
+
+The review content is branded by default: the summary is titled
+`Maira Code review`, inline comments carry a `Maira Code · confidence` footer,
+and the workflow appears as `Maira Code PR Review` with a `Maira Code review`
+job.
+
+The **author identity** on comments is controlled by the token that posts them:
+
+- With no extra configuration the workflow uses `GITHUB_TOKEN`, which GitHub
+  always displays as `github-actions[bot]`. Its name and avatar cannot be
+  changed.
+- To post as Maira Code, install a GitHub App named `Maira Code` and let the
+  workflow mint an installation token for it. Reviews and comments then appear
+  as `maira-code[bot]` with the app's avatar.
+
+### Using a GitHub App
+
+1. In organization settings, open **Developer settings → GitHub Apps → New
+   GitHub App**.
+2. Name it `Maira Code`, set a homepage, and upload the logo.
+3. Disable the webhook; the review workflow does not need it.
+4. Grant repository permissions: **Contents: Read and write** (needed to
+   resolve review threads), **Issues: Read and write**, and **Pull requests:
+   Read and write**. Metadata read is implicit.
+5. Install the app on the repositories that call this workflow.
+6. Store the app ID as the repository variable `MAIRA_APP_ID` and the
+   downloaded `.pem` private key as the repository secret
+   `MAIRA_APP_PRIVATE_KEY`.
+7. Pass them to the workflow:
+
+```yaml
+jobs:
+  review:
+    uses: gigalogy/maira-code-workflows/.github/workflows/pr-review-agent.yml@<full-sha-or-release-tag>
+    permissions:
+      contents: write
+      issues: write
+      pull-requests: write
+    with:
+      app_id: ${{ vars.MAIRA_APP_ID }}
+      effort: high
+    secrets:
+      MAIRA_CODE_TOKEN: ${{ secrets.MAIRA_CODE_TOKEN }}
+      app_private_key: ${{ secrets.MAIRA_APP_PRIVATE_KEY }}
+```
+
+If `app_id` is omitted, the workflow uses `GITHUB_TOKEN` and the author stays
+`github-actions[bot]`. If `app_id` is set, `app_private_key` is required and the
+job fails early when it is missing.
+
+GitHub App names are globally unique, so another organization cannot create a
+second app literally named `Maira Code`. Client organizations should create
+their own app, for example `Maira Code — <client>`, with the same icon. Do not
+share one app's private key across organizations.
 
 ## Repository-specific review guidance
 
@@ -243,7 +301,7 @@ Rules and warnings:
 - Inline comments are only placed on lines the diff added; everything else goes
   into the summary.
 - Check names are prefixed with the caller job name, for example
-  `review / review-agent`.
+  `review / Maira Code review`.
 - The caller's base commit must be available in the checkout; the workflow
   fetches it explicitly.
 
@@ -258,6 +316,8 @@ Rules and warnings:
 | Dependency install warning                             | The stack is unsupported or the install failed; the review continues. Set `install_dependencies: false` to silence it. |
 | Inline review failed, findings folded into the summary | GitHub rejected a comment position; the finding is still published in the summary.                                     |
 | No review posted                                       | The PR is a draft, authored by a bot, or from a fork; the gate skipped it.                                             |
+| Comments show `github-actions[bot]`                    | No `app_id` was passed, so `GITHUB_TOKEN` was used. Add the app ID and private key to post as the app.                 |
+| `create-github-app-token` failed                       | The app is not installed on the repository, the app ID is wrong, or the private key does not match.                    |
 
 ## Versioning and releases
 
