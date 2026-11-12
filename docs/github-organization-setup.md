@@ -196,9 +196,9 @@ To post as **Maira Code** with your logo:
 6. Store the credentials at the **organization** level (recommended when more
    than one repository uses the reviewer) or at the repository level:
 
-   - **Variable** `MAIRA_APP_ID`: the app's **App ID**. Do not use the Client
+   - **Variable** `MAIRA_LENS_APP_ID`: the app's **App ID**. Do not use the Client
      ID or the client secret here.
-   - **Secret** `MAIRA_APP_PRIVATE_KEY`: the `.pem` private key generated on
+   - **Secret** `MAIRA_LENS_APP_PRIVATE_KEY`: the `.pem` private key generated on
      the app's settings page.
 
    If you create organization credentials, restrict their repository access to
@@ -214,11 +214,11 @@ To post as **Maira Code** with your logo:
 
 ```yaml
     with:
-      app_id: ${{ vars.MAIRA_APP_ID }}
+      app_id: ${{ vars.MAIRA_LENS_APP_ID }}
       effort: high
     secrets:
       MAIRA_CODE_TOKEN: ${{ secrets.MAIRA_CODE_TOKEN }}
-      app_private_key: ${{ secrets.MAIRA_APP_PRIVATE_KEY }}
+      app_private_key: ${{ secrets.MAIRA_LENS_APP_PRIVATE_KEY }}
 ```
 
 The app token is minted only after the model has finished reviewing, so the
@@ -393,6 +393,6 @@ Draft PRs, bot-authored PRs, and fork PRs are intentionally skipped.
 | `MAIRA_CODE_MODEL` | variable | organization or repository | yes | Model exposed by the gateway. |
 | `MAIRA_CODE_TOKEN` | secret | organization or repository | yes | Gateway API key, sent as `X-Api-Key`. |
 | `REVIEW_SHOW_COST` | variable | organization or repository | no | `false` hides the cost line. |
-| `MAIRA_APP_ID` | variable | organization or repository | no | GitHub App ID for branded comments. |
-| `MAIRA_APP_PRIVATE_KEY` | secret | organization or repository | no | GitHub App private key. |
+| `MAIRA_LENS_APP_ID` | variable | organization or repository | no | GitHub App ID for branded comments. |
+| `MAIRA_LENS_APP_PRIVATE_KEY` | secret | organization or repository | no | GitHub App private key. |
 | `WORKFLOWS_TOKEN` | secret | organization or repository | no | Read access to a private prompt repository. |
