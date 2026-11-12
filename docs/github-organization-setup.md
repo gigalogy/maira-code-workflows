@@ -211,6 +211,9 @@ private key is not present while the agent processes untrusted PR content. If
 `app_id` is set but the private key is missing, the job fails early with a
 clear error.
 
+App branding requires a release that includes the `app_id` input. Check the
+release notes before pinning; `v1.0.0` does not include it.
+
 GitHub App names are globally unique. If Gigalogy already owns an app named
 `Maira Code`, another organization cannot create a second one with the same
 name. Use a name such as `Maira Code — <company>` with the same icon. Do not
