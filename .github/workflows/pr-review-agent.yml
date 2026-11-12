@@ -27,7 +27,7 @@ name: Maira Code PR Review
 #
 # Review feedback is posted with GITHUB_TOKEN (github-actions[bot]) by default.
 # Set app_id and app_private_key to author it as a GitHub App instead, for
-# example an app named "Maira Code" with the Maira Code logo.
+# example an app named "Maira Lens" with the Maira Lens logo.
 
 on:
   workflow_call:
@@ -790,7 +790,7 @@ jobs:
           PY
 
       # Optional branding: an installation token from a GitHub App named
-      # "Maira Code" authors the review and its comments under that name and
+      # "Maira Lens" authors the review and its comments under that name and
       # avatar. Without app_id the workflow falls back to GITHUB_TOKEN, which
       # GitHub always displays as github-actions[bot].
       - name: Mint the review app token

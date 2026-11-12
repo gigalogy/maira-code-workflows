@@ -155,15 +155,15 @@ The **author identity** on comments is controlled by the token that posts them:
 - With no extra configuration the workflow uses `GITHUB_TOKEN`, which GitHub
   always displays as `github-actions[bot]`. Its name and avatar cannot be
   changed.
-- To post as Maira Code, install a GitHub App named `Maira Code` and let the
+- To post as Maira Lens, install a GitHub App named `Maira Lens` and let the
   workflow mint an installation token for it. Reviews and comments then appear
-  as `maira-code[bot]` with the app's avatar.
+  as `maira-lens[bot]` with the app's avatar.
 
 ### Using a GitHub App
 
 1. In organization settings, open **Developer settings → GitHub Apps → New
    GitHub App**.
-2. Name it `Maira Code`, set a homepage, and upload the logo.
+2. Name it `Maira Lens`, set a homepage, and upload the logo.
 3. Disable the webhook; the review workflow does not need it.
 4. Grant repository permissions: **Contents: Read and write** (needed to
    resolve review threads), **Issues: Read and write**, and **Pull requests:
@@ -197,8 +197,8 @@ If `app_id` is omitted, the workflow uses `GITHUB_TOKEN` and the author stays
 job fails early when it is missing.
 
 GitHub App names are globally unique, so another organization cannot create a
-second app literally named `Maira Code`. Client organizations should create
-their own app, for example `Maira Code — <client>`, with the same icon. Do not
+second app literally named `Maira Lens`. Client organizations should create
+their own app, for example `Maira Lens — <client>`, with the same icon. Do not
 share one app's private key across organizations.
 
 ## Repository-specific review guidance

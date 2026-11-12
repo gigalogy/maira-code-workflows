@@ -180,12 +180,12 @@ By default the workflow posts with the repository's `GITHUB_TOKEN`, which
 GitHub always displays as **`github-actions[bot]`**. The review text already
 says Maira Code, but the author badge cannot be renamed.
 
-To post as **Maira Code** with your logo:
+To post as **Maira Lens** with your logo:
 
 1. Open **Organization settings → Developer settings → GitHub Apps → New
    GitHub App**.
-2. Name the app `Maira Code`, set a homepage, and upload the logo. The slug
-   becomes `maira-code`, so comments appear from `maira-code[bot]`.
+2. Name the app `Maira Lens`, set a homepage, and upload the logo. The slug
+   becomes `maira-lens`, so comments appear from `maira-lens[bot]`.
 3. Disable the webhook; the reviewer does not need it.
 4. Grant repository permissions:
    - **Contents: Read and write** (required to resolve review threads)
@@ -230,8 +230,8 @@ App branding requires a release that includes the `app_id` input. Check the
 release notes before pinning; `v1.0.0` does not include it.
 
 GitHub App names are globally unique. If Gigalogy already owns an app named
-`Maira Code`, another organization cannot create a second one with the same
-name. Use a name such as `Maira Code — <company>` with the same icon. Do not
+`Maira Lens`, another organization cannot create a second one with the same
+name. Use a name such as `Maira Lens — <company>` with the same icon. Do not
 share one app's private key across organizations.
 
 ## 6. Optional: repository-specific review guidance
