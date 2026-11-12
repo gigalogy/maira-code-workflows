@@ -13,11 +13,11 @@ name: Maira Lens PR Review
 #         effort: high
 #         max_budget_usd: "10"
 #       secrets:
-#         MAIRA_CODE_TOKEN: ${{ secrets.MAIRA_CODE_TOKEN }}
+#         MAIRA_LENS_TOKEN: ${{ secrets.MAIRA_LENS_TOKEN }}
 #         # Only needed when this repository is private:
-#         # WORKFLOWS_TOKEN: ${{ secrets.WORKFLOWS_TOKEN }}
+#         # MAIRA_LENS_WORKFLOWS_TOKEN: ${{ secrets.MAIRA_LENS_WORKFLOWS_TOKEN }}
 #
-# MAIRA_CODE_BASE_URL, MAIRA_CODE_MODEL, and REVIEW_SHOW_COST are read from the
+# MAIRA_LENS_BASE_URL, MAIRA_LENS_MODEL, and MAIRA_LENS_SHOW_COST are read from the
 # caller repository's variables (organization variables are inherited). Prompt
 # files come from this repository at the called workflow's commit. A caller may
 # add or replace the review brief with a repository-specific one
@@ -26,7 +26,7 @@ name: Maira Lens PR Review
 # the workflow's parsing and publishing code.
 #
 # Review feedback is posted with GITHUB_TOKEN (github-actions[bot]) by default.
-# Set app_id and app_private_key to author it as a GitHub App instead, for
+# Set app_id and MAIRA_LENS_APP_PRIVATE_KEY to author it as a GitHub App instead, for
 # example an app named "Maira Lens" with the Maira Lens logo.
 
 on:
@@ -93,13 +93,13 @@ on:
         type: string
         default: prompts/pr-review.schema.json
     secrets:
-      MAIRA_CODE_TOKEN:
+      MAIRA_LENS_TOKEN:
         description: "Maira Hub API key, sent as the X-Api-Key header."
         required: true
-      app_private_key:
+      MAIRA_LENS_APP_PRIVATE_KEY:
         description: "Private key for app_id. Required when app_id is set."
         required: false
-      WORKFLOWS_TOKEN:
+      MAIRA_LENS_WORKFLOWS_TOKEN:
         description: "Token with read access to prompt_repository. Only needed when that repository is private."
         required: false
 
@@ -127,21 +127,21 @@ jobs:
       pull-requests: write
     env:
       # Self-hosted gateway. Configure as repository variables/secrets:
-      #   MAIRA_CODE_BASE_URL  e.g. https://maira.example.com (no /v1 suffix:
+      #   MAIRA_LENS_BASE_URL  e.g. https://maira.example.com (no /v1 suffix:
       #                        the CLI appends /v1/messages itself)
-      #   MAIRA_CODE_MODEL     e.g. g-maira-code
-      #   MAIRA_CODE_TOKEN     (secret) Maira Hub API key, sent as X-Api-Key
-      ANTHROPIC_BASE_URL: ${{ vars.MAIRA_CODE_BASE_URL }}
+      #   MAIRA_LENS_MODEL     e.g. g-maira-code
+      #   MAIRA_LENS_TOKEN     (secret) Maira Hub API key, sent as X-Api-Key
+      ANTHROPIC_BASE_URL: ${{ vars.MAIRA_LENS_BASE_URL }}
       # The gateway authenticates with an X-Api-Key header, not a bearer
       # token. The CLI insists on a non-empty bearer token anyway, so it gets
       # a placeholder; the secret travels in the custom header.
       ANTHROPIC_AUTH_TOKEN: maira
-      ANTHROPIC_CUSTOM_HEADERS: "X-Api-Key:${{ secrets.MAIRA_CODE_TOKEN }}"
-      ANTHROPIC_MODEL: ${{ vars.MAIRA_CODE_MODEL }}
+      ANTHROPIC_CUSTOM_HEADERS: "X-Api-Key:${{ secrets.MAIRA_LENS_TOKEN }}"
+      ANTHROPIC_MODEL: ${{ vars.MAIRA_LENS_MODEL }}
       # The gateway exposes one model. Point Claude Code's housekeeping calls at
       # it too, otherwise they 404 looking for a Haiku-class model.
-      ANTHROPIC_DEFAULT_HAIKU_MODEL: ${{ vars.MAIRA_CODE_MODEL }}
-      ANTHROPIC_SMALL_FAST_MODEL: ${{ vars.MAIRA_CODE_MODEL }}
+      ANTHROPIC_DEFAULT_HAIKU_MODEL: ${{ vars.MAIRA_LENS_MODEL }}
+      ANTHROPIC_SMALL_FAST_MODEL: ${{ vars.MAIRA_LENS_MODEL }}
       CLAUDE_CODE_DISABLE_NONESSENTIAL_TRAFFIC: "1"
       DISABLE_TELEMETRY: "1"
       DISABLE_ERROR_REPORTING: "1"
@@ -163,28 +163,28 @@ jobs:
       # ("unrecognized_model" with an empty model name). Fail early instead.
       - name: Validate review configuration
         env:
-          REVIEW_BASE_URL: ${{ vars.MAIRA_CODE_BASE_URL }}
-          REVIEW_MODEL: ${{ vars.MAIRA_CODE_MODEL }}
-          REVIEW_TOKEN: ${{ secrets.MAIRA_CODE_TOKEN }}
+          REVIEW_BASE_URL: ${{ vars.MAIRA_LENS_BASE_URL }}
+          REVIEW_MODEL: ${{ vars.MAIRA_LENS_MODEL }}
+          REVIEW_TOKEN: ${{ secrets.MAIRA_LENS_TOKEN }}
           REVIEW_APP_ID: ${{ inputs.app_id }}
-          REVIEW_APP_PRIVATE_KEY: ${{ secrets.app_private_key }}
+          REVIEW_APP_PRIVATE_KEY: ${{ secrets.MAIRA_LENS_APP_PRIVATE_KEY }}
         run: |
           set -uo pipefail
           missing=0
           if [ -z "${REVIEW_BASE_URL:-}" ]; then
-            echo "::error::Repository variable MAIRA_CODE_BASE_URL is not set (e.g. https://gateway.example.com/anthropic)."
+            echo "::error::Repository variable MAIRA_LENS_BASE_URL is not set (e.g. https://gateway.example.com/anthropic)."
             missing=1
           fi
           if [ -z "${REVIEW_MODEL:-}" ]; then
-            echo "::error::Repository variable MAIRA_CODE_MODEL is not set (e.g. g-maira-code)."
+            echo "::error::Repository variable MAIRA_LENS_MODEL is not set (e.g. g-maira-code)."
             missing=1
           fi
           if [ -z "${REVIEW_TOKEN:-}" ]; then
-            echo "::error::Repository secret MAIRA_CODE_TOKEN is not set."
+            echo "::error::Repository secret MAIRA_LENS_TOKEN is not set."
             missing=1
           fi
           if [ -n "${REVIEW_APP_ID:-}" ] && [ -z "${REVIEW_APP_PRIVATE_KEY:-}" ]; then
-            echo "::error::app_id is set but the app_private_key secret is empty."
+            echo "::error::app_id is set but the MAIRA_LENS_APP_PRIVATE_KEY secret is empty."
             missing=1
           fi
           if [ "${missing}" -ne 0 ]; then
@@ -251,7 +251,7 @@ jobs:
           repository: ${{ steps.prompt_source.outputs.brief_repository }}
           ref: ${{ steps.prompt_source.outputs.brief_ref }}
           path: .maira-prompts
-          token: ${{ secrets.WORKFLOWS_TOKEN || github.token }}
+          token: ${{ secrets.MAIRA_LENS_WORKFLOWS_TOKEN || github.token }}
           persist-credentials: false
 
       # The verification prompt and output schema are coupled to extract.py and
@@ -263,7 +263,7 @@ jobs:
           repository: ${{ steps.prompt_source.outputs.workflow_repository }}
           ref: ${{ steps.prompt_source.outputs.workflow_ref }}
           path: .maira-workflow-prompts
-          token: ${{ secrets.WORKFLOWS_TOKEN || github.token }}
+          token: ${{ secrets.MAIRA_LENS_WORKFLOWS_TOKEN || github.token }}
           persist-credentials: false
 
       - name: Capture review inputs
@@ -799,7 +799,7 @@ jobs:
         uses: actions/create-github-app-token@v2
         with:
           app-id: ${{ inputs.app_id }}
-          private-key: ${{ secrets.app_private_key }}
+          private-key: ${{ secrets.MAIRA_LENS_APP_PRIVATE_KEY }}
           owner: ${{ github.repository_owner }}
           repositories: ${{ github.event.repository.name }}
 
@@ -809,7 +809,7 @@ jobs:
         env:
           # Repository variable. Shown by default; set to "false" to hide the
           # cost line in the review summary.
-          REVIEW_SHOW_COST: ${{ vars.REVIEW_SHOW_COST }}
+          MAIRA_LENS_SHOW_COST: ${{ vars.MAIRA_LENS_SHOW_COST }}
           REVIEW_EFFORT: ${{ inputs.effort }}
         with:
           github-token: ${{ steps.app_token.outputs.token || secrets.GITHUB_TOKEN }}
@@ -833,7 +833,7 @@ jobs:
             const headSha = fs.readFileSync('/tmp/review/head_sha', 'utf8').trim();
             const model = process.env.ANTHROPIC_MODEL || 'unknown';
             // Shown by default; set the repository variable to "false" to hide.
-            const showCost = String(process.env.REVIEW_SHOW_COST ?? 'true').toLowerCase() !== 'false';
+            const showCost = String(process.env.MAIRA_LENS_SHOW_COST ?? 'true').toLowerCase() !== 'false';
 
             const readCost = (path) => {
               try {
@@ -1087,7 +1087,7 @@ jobs:
         uses: actions/create-github-app-token@v2
         with:
           app-id: ${{ inputs.app_id }}
-          private-key: ${{ secrets.app_private_key }}
+          private-key: ${{ secrets.MAIRA_LENS_APP_PRIVATE_KEY }}
           owner: ${{ github.repository_owner }}
           repositories: ${{ github.event.repository.name }}
 

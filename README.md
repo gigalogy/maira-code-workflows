@@ -55,24 +55,27 @@ jobs:
       effort: high
       max_budget_usd: "10"
     secrets:
-      MAIRA_CODE_TOKEN: ${{ secrets.MAIRA_CODE_TOKEN }}
+      MAIRA_LENS_TOKEN: ${{ secrets.MAIRA_LENS_TOKEN }}
 ```
 
 Pin `uses:` to a full commit SHA or an immutable release tag, never a branch.
 The caller chooses the branch filters and event types; the workflow itself only
 runs for `pull_request` events.
 
+The `MAIRA_LENS_*` names and the `app_id` input require a release after
+`v1.0.0`; the `v1.0.0` tag uses the older `MAIRA_CODE_*` names.
+
 ## Requirements
 
-The calling repository (or its organization) provides two repository variables
-and one secret:
+The calling repository (or its organization) provides the following repository
+variables and secret:
 
-| Name                  | Kind     | Example                     | Purpose                                                                |
-|-----------------------|----------|-----------------------------|------------------------------------------------------------------------|
-| `MAIRA_CODE_BASE_URL` | variable | `https://maira.example.com` | Gateway API root. Do not append `/v1`; the CLI appends `/v1/messages`. |
-| `MAIRA_CODE_MODEL`    | variable | `g-maira-code`              | Model exposed by the gateway.                                          |
-| `MAIRA_CODE_TOKEN`    | secret   | —                           | Maira Hub API key, sent as the `X-Api-Key` header.                     |
-| `REVIEW_SHOW_COST`    | variable | `false`                     | Set to `false` to hide the cost line in the summary. Shown by default. |
+| Name                   | Kind     | Example                     | Purpose                                                                |
+|------------------------|----------|-----------------------------|------------------------------------------------------------------------|
+| `MAIRA_LENS_BASE_URL`  | variable | `https://maira.example.com` | Gateway API root. Do not append `/v1`; the CLI appends `/v1/messages`. |
+| `MAIRA_LENS_MODEL`     | variable | `g-maira-code`              | Model exposed by the gateway.                                          |
+| `MAIRA_LENS_TOKEN`     | secret   | —                           | Maira Hub API key, sent as the `X-Api-Key` header.                     |
+| `MAIRA_LENS_SHOW_COST` | variable | `false`                     | Set to `false` to hide the cost line in the summary. Shown by default. |
 
 Repositories inherit organization-level variables, so they can be set
 once for every client repository. Missing values fail the job early with a
@@ -137,11 +140,11 @@ Notes:
 
 ## Secrets
 
-| Secret             | Required | Description                                                                                                                                                                                                                                                                                         |
-|--------------------|----------|-----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
-| `MAIRA_CODE_TOKEN` | yes      | Maira Hub API key, sent as the `X-Api-Key` header.                                                                                                                                                                                                                                                  |
-| `app_private_key`  | no       | Private key for `app_id`. Required when `app_id` is set.                                                                                                                                                                                                                                            |
-| `WORKFLOWS_TOKEN`  | no       | Read access to this repository when it is private, or to a separate private `prompt_repository`. Not needed when every source repository is public, or when the brief comes from the caller's own repository. Without it the job uses `github.token`, which cannot read other private repositories. |
+| Secret                       | Required | Description                                                                                                                                                                                                                                                                                         |
+|------------------------------|----------|-----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
+| `MAIRA_LENS_TOKEN`           | yes      | Maira Hub API key, sent as the `X-Api-Key` header.                                                                                                                                                                                                                                                  |
+| `MAIRA_LENS_APP_PRIVATE_KEY` | no       | Private key for `app_id`. Required when `app_id` is set.                                                                                                                                                                                                                                            |
+| `MAIRA_LENS_WORKFLOWS_TOKEN` | no       | Read access to this repository when it is private, or to a separate private `prompt_repository`. Not needed when every source repository is public, or when the brief comes from the caller's own repository. Without it the job uses `github.token`, which cannot read other private repositories. |
 
 ## Branding
 
@@ -188,13 +191,13 @@ jobs:
       app_id: ${{ vars.MAIRA_LENS_APP_ID }}
       effort: high
     secrets:
-      MAIRA_CODE_TOKEN: ${{ secrets.MAIRA_CODE_TOKEN }}
-      app_private_key: ${{ secrets.MAIRA_LENS_APP_PRIVATE_KEY }}
+      MAIRA_LENS_TOKEN: ${{ secrets.MAIRA_LENS_TOKEN }}
+      MAIRA_LENS_APP_PRIVATE_KEY: ${{ secrets.MAIRA_LENS_APP_PRIVATE_KEY }}
 ```
 
 If `app_id` is omitted, the workflow uses `GITHUB_TOKEN` and the author stays
-`github-actions[bot]`. If `app_id` is set, `app_private_key` is required and the
-job fails early when it is missing.
+`github-actions[bot]`. If `app_id` is set, `MAIRA_LENS_APP_PRIVATE_KEY` is
+required and the job fails early when it is missing.
 
 GitHub App names are globally unique, so another organization cannot create a
 second app literally named `Maira Lens`. Client organizations should create
@@ -249,7 +252,7 @@ jobs:
       prompt_ref: ${{ github.event.pull_request.base.sha }}
       prompt_path: .github/maira/pr-review.md
     secrets:
-      MAIRA_CODE_TOKEN: ${{ secrets.MAIRA_CODE_TOKEN }}
+      MAIRA_LENS_TOKEN: ${{ secrets.MAIRA_LENS_TOKEN }}
 ```
 
 Rules and warnings:
@@ -270,7 +273,7 @@ Rules and warnings:
   pull request before enabling the reviewer, otherwise the first run fails with
   `missing from <repo>@<sha>`.
 - When the brief comes from the caller's own repository, `github.token` can read
-  it even when private, so `WORKFLOWS_TOKEN` is not required.
+  it even when private, so `MAIRA_LENS_WORKFLOWS_TOKEN` is not required.
 - `prompt_repository` and `prompt_ref` apply only to the repository brief. The
   verification prompt and output schema always come from this repository and
   stay in lockstep with the extraction and publishing code.
@@ -319,8 +322,8 @@ Rules and warnings:
 
 | Symptom                                                | Cause and fix                                                                                                          |
 |--------------------------------------------------------|------------------------------------------------------------------------------------------------------------------------|
-| `Repository variable MAIRA_CODE_BASE_URL is not set`   | Set the variable on the calling repository or its organization.                                                        |
-| `unrecognized_model`                                   | `MAIRA_CODE_MODEL` is missing or wrong; it must match the model exposed by the gateway.                                |
+| `Repository variable MAIRA_LENS_BASE_URL is not set`   | Set the variable on the calling repository or its organization.                                                        |
+| `unrecognized_model`                                   | `MAIRA_LENS_MODEL` is missing or wrong; it must match the model exposed by the gateway.                                |
 | `prompt_ref must be a full 40-character commit SHA`    | Use `${{ github.event.pull_request.base.sha }}`, not a branch or tag.                                                  |
 | `... is missing from <repo>@<sha>`                     | The brief or prompt file does not exist at that commit. Land it first.                                                 |
 | Dependency install warning                             | The stack is unsupported or the install failed; the review continues. Set `install_dependencies: false` to silence it. |
