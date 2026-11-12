@@ -1,7 +1,7 @@
 # maira-code-workflows
 
 Reusable GitHub Actions workflow for automated pull request review with the
-Maira Code model (`g-maira-code`).
+Maira Lens reviewer (model `g-maira-code`).
 
 The reviewer is language- and framework-agnostic. It infers the stack from the
 repository, reports only defects introduced by the change, and can run the

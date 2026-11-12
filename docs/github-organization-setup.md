@@ -1,7 +1,7 @@
-# Set up Maira Code for a GitHub organization
+# Set up Maira Lens for a GitHub organization
 
 This guide is for a GitHub organization owner or repository administrator who
-wants to run Maira Code automated pull request reviews on one or more
+wants to run Maira Lens automated pull request reviews on one or more
 repositories. It covers organization-level configuration, the caller workflow,
 optional branding and repository-specific guidance, verification, and
 troubleshooting. It can be shared with client organizations as-is.
@@ -17,7 +17,7 @@ You need:
 - Admin access to the GitHub organization, or permission to manage Actions
   settings, organization variables, and organization secrets.
 - Admin access to the repositories that will use the reviewer.
-- The Maira Code gateway URL, model name, and API key from Gigalogy.
+- The Maira gateway URL, model name, and API key from Gigalogy.
 - GitHub Actions enabled for the organization and the repositories.
 
 The setup takes about 15 minutes for the first repository. Additional
