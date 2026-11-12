@@ -1,13 +1,21 @@
 # maira-code-workflows
 
 Reusable GitHub Actions workflow for automated pull request review with the
-Maira Code model (`g-maira-code`).
+Maira Lens reviewer (model `g-maira-code`).
 
 The reviewer is language- and framework-agnostic. It infers the stack from the
 repository, reports only defects introduced by the change, and can run the
 project's existing linters, type checkers, and focused tests to validate a
 hypothesis. Repositories can append their own review guidance without forking
 the workflow.
+
+## Setup
+
+For a step-by-step organization setup guide you can share with clients, see
+[docs/github-organization-setup.md](docs/github-organization-setup.md). It
+covers Actions policy, organization variables and secrets, the caller
+workflow, optional GitHub App branding, repository-specific briefs, and
+troubleshooting.
 
 ## What it does
 
@@ -47,24 +55,27 @@ jobs:
       effort: high
       max_budget_usd: "10"
     secrets:
-      MAIRA_CODE_TOKEN: ${{ secrets.MAIRA_CODE_TOKEN }}
+      MAIRA_LENS_TOKEN: ${{ secrets.MAIRA_LENS_TOKEN }}
 ```
 
 Pin `uses:` to a full commit SHA or an immutable release tag, never a branch.
 The caller chooses the branch filters and event types; the workflow itself only
 runs for `pull_request` events.
 
+The `MAIRA_LENS_*` names and the `app_id` input require a release after
+`v1.0.0`; the `v1.0.0` tag uses the older `MAIRA_CODE_*` names.
+
 ## Requirements
 
-The calling repository (or its organization) provides two repository variables
-and one secret:
+The calling repository (or its organization) provides the following repository
+variables and secret:
 
-| Name                  | Kind     | Example                     | Purpose                                                                |
-|-----------------------|----------|-----------------------------|------------------------------------------------------------------------|
-| `MAIRA_CODE_BASE_URL` | variable | `https://maira.example.com` | Gateway API root. Do not append `/v1`; the CLI appends `/v1/messages`. |
-| `MAIRA_CODE_MODEL`    | variable | `g-maira-code`              | Model exposed by the gateway.                                          |
-| `MAIRA_CODE_TOKEN`    | secret   | —                           | Maira Hub API key, sent as the `X-Api-Key` header.                     |
-| `REVIEW_SHOW_COST`    | variable | `false`                     | Set to `false` to hide the cost line in the summary. Shown by default. |
+| Name                   | Kind     | Example                     | Purpose                                                                |
+|------------------------|----------|-----------------------------|------------------------------------------------------------------------|
+| `MAIRA_LENS_BASE_URL`  | variable | `https://maira.example.com` | Gateway API root. Do not append `/v1`; the CLI appends `/v1/messages`. |
+| `MAIRA_LENS_MODEL`     | variable | `g-maira-code`              | Model exposed by the gateway.                                          |
+| `MAIRA_LENS_TOKEN`     | secret   | —                           | Maira Hub API key, sent as the `X-Api-Key` header.                     |
+| `MAIRA_LENS_SHOW_COST` | variable | `false`                     | Set to `false` to hide the cost line in the summary. Shown by default. |
 
 Repositories inherit organization-level variables, so they can be set
 once for every client repository. Missing values fail the job early with a
@@ -129,17 +140,17 @@ Notes:
 
 ## Secrets
 
-| Secret             | Required | Description                                                                                                                                                                                                                                                                                         |
-|--------------------|----------|-----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
-| `MAIRA_CODE_TOKEN` | yes      | Maira Hub API key, sent as the `X-Api-Key` header.                                                                                                                                                                                                                                                  |
-| `app_private_key`  | no       | Private key for `app_id`. Required when `app_id` is set.                                                                                                                                                                                                                                            |
-| `WORKFLOWS_TOKEN`  | no       | Read access to this repository when it is private, or to a separate private `prompt_repository`. Not needed when every source repository is public, or when the brief comes from the caller's own repository. Without it the job uses `github.token`, which cannot read other private repositories. |
+| Secret                       | Required | Description                                                                                                                                                                                                                                                                                         |
+|------------------------------|----------|-----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
+| `MAIRA_LENS_TOKEN`           | yes      | Maira Hub API key, sent as the `X-Api-Key` header.                                                                                                                                                                                                                                                  |
+| `MAIRA_LENS_APP_PRIVATE_KEY` | no       | Private key for `app_id`. Required when `app_id` is set.                                                                                                                                                                                                                                            |
+| `MAIRA_LENS_WORKFLOWS_TOKEN` | no       | Read access to this repository when it is private, or to a separate private `prompt_repository`. Not needed when every source repository is public, or when the brief comes from the caller's own repository. Without it the job uses `github.token`, which cannot read other private repositories. |
 
 ## Branding
 
 The review content is branded by default: the summary is titled
-`Maira Code review`, inline comments carry a `Maira Code · confidence` footer,
-and the workflow appears as `Maira Code PR Review` with a `Maira Code review`
+`Maira Lens review`, inline comments carry a `Maira Lens · confidence` footer,
+and the workflow appears as `Maira Lens PR Review` with a `Maira Lens review`
 job.
 
 The **author identity** on comments is controlled by the token that posts them:
@@ -147,23 +158,25 @@ The **author identity** on comments is controlled by the token that posts them:
 - With no extra configuration the workflow uses `GITHUB_TOKEN`, which GitHub
   always displays as `github-actions[bot]`. Its name and avatar cannot be
   changed.
-- To post as Maira Code, install a GitHub App named `Maira Code` and let the
+- To post as Maira Lens, install a GitHub App named `Maira Lens` and let the
   workflow mint an installation token for it. Reviews and comments then appear
-  as `maira-code[bot]` with the app's avatar.
+  as `maira-lens[bot]` with the app's avatar.
 
 ### Using a GitHub App
 
 1. In organization settings, open **Developer settings → GitHub Apps → New
    GitHub App**.
-2. Name it `Maira Code`, set a homepage, and upload the logo.
+2. Name it `Maira Lens`, set a homepage, and upload the logo.
 3. Disable the webhook; the review workflow does not need it.
 4. Grant repository permissions: **Contents: Read and write** (needed to
    resolve review threads), **Issues: Read and write**, and **Pull requests:
    Read and write**. Metadata read is implicit.
 5. Install the app on the repositories that call this workflow.
-6. Store the app ID as the repository variable `MAIRA_APP_ID` and the
-   downloaded `.pem` private key as the repository secret
-   `MAIRA_APP_PRIVATE_KEY`.
+6. Store the App ID as the variable `MAIRA_LENS_APP_ID` and the downloaded `.pem`
+   private key as the secret `MAIRA_LENS_APP_PRIVATE_KEY`, at the organization or
+   repository level. Restrict organization credentials to the repositories
+   that use the reviewer. The app's client secret is only for OAuth flows and
+   cannot replace the private key.
 7. Pass them to the workflow:
 
 ```yaml
@@ -175,20 +188,20 @@ jobs:
       issues: write
       pull-requests: write
     with:
-      app_id: ${{ vars.MAIRA_APP_ID }}
+      app_id: ${{ vars.MAIRA_LENS_APP_ID }}
       effort: high
     secrets:
-      MAIRA_CODE_TOKEN: ${{ secrets.MAIRA_CODE_TOKEN }}
-      app_private_key: ${{ secrets.MAIRA_APP_PRIVATE_KEY }}
+      MAIRA_LENS_TOKEN: ${{ secrets.MAIRA_LENS_TOKEN }}
+      MAIRA_LENS_APP_PRIVATE_KEY: ${{ secrets.MAIRA_LENS_APP_PRIVATE_KEY }}
 ```
 
 If `app_id` is omitted, the workflow uses `GITHUB_TOKEN` and the author stays
-`github-actions[bot]`. If `app_id` is set, `app_private_key` is required and the
-job fails early when it is missing.
+`github-actions[bot]`. If `app_id` is set, `MAIRA_LENS_APP_PRIVATE_KEY` is
+required and the job fails early when it is missing.
 
 GitHub App names are globally unique, so another organization cannot create a
-second app literally named `Maira Code`. Client organizations should create
-their own app, for example `Maira Code — <client>`, with the same icon. Do not
+second app literally named `Maira Lens`. Client organizations should create
+their own app, for example `Maira Lens — <client>`, with the same icon. Do not
 share one app's private key across organizations.
 
 ## Repository-specific review guidance
@@ -239,7 +252,7 @@ jobs:
       prompt_ref: ${{ github.event.pull_request.base.sha }}
       prompt_path: .github/maira/pr-review.md
     secrets:
-      MAIRA_CODE_TOKEN: ${{ secrets.MAIRA_CODE_TOKEN }}
+      MAIRA_LENS_TOKEN: ${{ secrets.MAIRA_LENS_TOKEN }}
 ```
 
 Rules and warnings:
@@ -260,7 +273,7 @@ Rules and warnings:
   pull request before enabling the reviewer, otherwise the first run fails with
   `missing from <repo>@<sha>`.
 - When the brief comes from the caller's own repository, `github.token` can read
-  it even when private, so `WORKFLOWS_TOKEN` is not required.
+  it even when private, so `MAIRA_LENS_WORKFLOWS_TOKEN` is not required.
 - `prompt_repository` and `prompt_ref` apply only to the repository brief. The
   verification prompt and output schema always come from this repository and
   stay in lockstep with the extraction and publishing code.
@@ -301,7 +314,7 @@ Rules and warnings:
 - Inline comments are only placed on lines the diff added; everything else goes
   into the summary.
 - Check names are prefixed with the caller job name, for example
-  `review / Maira Code review`.
+  `review / Maira Lens review`.
 - The caller's base commit must be available in the checkout; the workflow
   fetches it explicitly.
 
@@ -309,8 +322,8 @@ Rules and warnings:
 
 | Symptom                                                | Cause and fix                                                                                                          |
 |--------------------------------------------------------|------------------------------------------------------------------------------------------------------------------------|
-| `Repository variable MAIRA_CODE_BASE_URL is not set`   | Set the variable on the calling repository or its organization.                                                        |
-| `unrecognized_model`                                   | `MAIRA_CODE_MODEL` is missing or wrong; it must match the model exposed by the gateway.                                |
+| `Repository variable MAIRA_LENS_BASE_URL is not set`   | Set the variable on the calling repository or its organization.                                                        |
+| `unrecognized_model`                                   | `MAIRA_LENS_MODEL` is missing or wrong; it must match the model exposed by the gateway.                                |
 | `prompt_ref must be a full 40-character commit SHA`    | Use `${{ github.event.pull_request.base.sha }}`, not a branch or tag.                                                  |
 | `... is missing from <repo>@<sha>`                     | The brief or prompt file does not exist at that commit. Land it first.                                                 |
 | Dependency install warning                             | The stack is unsupported or the install failed; the review continues. Set `install_dependencies: false` to silence it. |
