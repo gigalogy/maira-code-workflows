@@ -26,7 +26,7 @@
         "properties": {
           "path": {
             "type": "string",
-            "description": "Repository-relative path, e.g. code/app/api/foo.py."
+            "description": "Repository-relative path to the changed file, e.g. src/api/orders.py, app/Services/Orders.php, or web/src/orders.ts."
           },
           "line": {
             "type": "integer",
