@@ -27,7 +27,7 @@ repositories only need the caller workflow file.
 
 ```text
 your repository
-  .github/workflows/maira-code-review.yml   <- caller workflow (you add this)
+  .github/workflows/maira-lens-review.yml   <- caller workflow (you add this)
         |
         | calls at a pinned release
         v
@@ -110,10 +110,10 @@ needs `contents: read` on that repository and is passed as `WORKFLOWS_TOKEN`.
 
 ## 4. Add the caller workflow
 
-Create `.github/workflows/maira-code-review.yml` in each repository:
+Create `.github/workflows/maira-lens-review.yml` in each repository:
 
 ```yaml
-name: Maira Code review
+name: Maira Lens review
 
 on:
   pull_request:
@@ -178,7 +178,7 @@ receive the gateway key.
 
 By default the workflow posts with the repository's `GITHUB_TOKEN`, which
 GitHub always displays as **`github-actions[bot]`**. The review text already
-says Maira Code, but the author badge cannot be renamed.
+says Maira Lens, but the author badge cannot be renamed.
 
 To post as **Maira Lens** with your logo:
 
@@ -319,11 +319,11 @@ recognizes the stack:
 1. Create a branch in the repository (not a fork) and open a non-draft pull
    request.
 2. Open the **Actions** tab. The caller workflow appears as
-   **Maira Code review**, and the job appears as **Maira Code review**.
+   **Maira Lens review**, and the job appears as **Maira Lens review**.
 3. The check name is prefixed with the caller job id, for example
-   `review / Maira Code review`.
+   `review / Maira Lens review`.
 4. After the first run, the PR has a summary comment titled
-   **Maira Code review** and, where GitHub allows, inline comments on added
+   **Maira Lens review** and, where GitHub allows, inline comments on added
    lines.
 5. Push another commit. The next run updates the summary in place and resolves
    the previous run's inline threads.

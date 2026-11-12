@@ -1,4 +1,4 @@
-name: Maira Code PR Review
+name: Maira Lens PR Review
 
 # Reusable reviewer. Call it from another repository's workflow:
 #
@@ -108,7 +108,7 @@ permissions:
 
 jobs:
   review-agent:
-    name: Maira Code review
+    name: Maira Lens review
     # The caller decides when this runs (event types, REVIEW_ENGINE, labels).
     # These safety gates must hold for every caller.
     if: >
@@ -816,8 +816,8 @@ jobs:
           script: |
             const fs = require('fs');
 
-            const marker = '<!-- maira-code-review-summary -->';
-            const brand = 'Maira Code';
+            const marker = '<!-- maira-lens-review-summary -->';
+            const brand = 'Maira Lens';
             const severityOrder = { critical: 0, high: 1, medium: 2, low: 3 };
             const severityLabel = {
               critical: '🔴 Critical',
@@ -877,7 +877,7 @@ jobs:
             const clean = (value, max) => truncate(redact(value), max);
             const severityName = (severity) => severityLabel[severity] || String(severity);
             // Hidden marker so a later run can find and resolve this thread.
-            const inlineMarker = '<!-- maira-code-review -->';
+            const inlineMarker = '<!-- maira-lens-review -->';
             const formatFinding = (finding) => [
               inlineMarker,
               `### ${severityName(finding.severity)}`,
@@ -1091,7 +1091,7 @@ jobs:
           owner: ${{ github.repository_owner }}
           repositories: ${{ github.event.repository.name }}
 
-      - name: Resolve superseded Maira Code threads
+      - name: Resolve superseded Maira Lens threads
         uses: actions/github-script@v8
         env:
           STALE_THREADS: ${{ needs.review-agent.outputs.stale_threads }}
@@ -1113,5 +1113,5 @@ jobs:
                 core.warning(`Could not resolve review thread ${threadId}: ${error.message}`);
               }
             }
-            core.info(`Resolved ${resolved} of ${ids.length} previous Maira Code review thread(s).`);
+            core.info(`Resolved ${resolved} of ${ids.length} previous Maira Lens review thread(s).`);
 

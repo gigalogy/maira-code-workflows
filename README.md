@@ -146,8 +146,8 @@ Notes:
 ## Branding
 
 The review content is branded by default: the summary is titled
-`Maira Code review`, inline comments carry a `Maira Code · confidence` footer,
-and the workflow appears as `Maira Code PR Review` with a `Maira Code review`
+`Maira Lens review`, inline comments carry a `Maira Lens · confidence` footer,
+and the workflow appears as `Maira Lens PR Review` with a `Maira Lens review`
 job.
 
 The **author identity** on comments is controlled by the token that posts them:
@@ -311,7 +311,7 @@ Rules and warnings:
 - Inline comments are only placed on lines the diff added; everything else goes
   into the summary.
 - Check names are prefixed with the caller job name, for example
-  `review / Maira Code review`.
+  `review / Maira Lens review`.
 - The caller's base commit must be available in the checkout; the workflow
   fetches it explicitly.
 
