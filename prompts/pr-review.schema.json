@@ -1,0 +1,65 @@
+{
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["summary", "findings"],
+  "properties": {
+    "summary": {
+      "type": "string",
+      "description": "One to three sentences on what the PR does and the overall verdict."
+    },
+    "findings": {
+      "type": "array",
+      "description": "Defects introduced or exposed by this PR. May be empty.",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "path",
+          "line",
+          "severity",
+          "title",
+          "failure_path",
+          "evidence",
+          "suggestion",
+          "confidence"
+        ],
+        "properties": {
+          "path": {
+            "type": "string",
+            "description": "Repository-relative path, e.g. code/app/api/foo.py."
+          },
+          "line": {
+            "type": "integer",
+            "minimum": 1,
+            "description": "Line number in the new version of the file."
+          },
+          "severity": {
+            "type": "string",
+            "enum": ["critical", "high", "medium", "low"]
+          },
+          "title": {
+            "type": "string",
+            "description": "One sentence naming the defect."
+          },
+          "failure_path": {
+            "type": "string",
+            "description": "Concrete inputs or state, the code path taken, and the wrong outcome."
+          },
+          "evidence": {
+            "type": "string",
+            "description": "What was read in the repository that proves the defect."
+          },
+          "suggestion": {
+            "type": "string",
+            "description": "The minimal fix."
+          },
+          "confidence": {
+            "type": "number",
+            "minimum": 0,
+            "maximum": 1
+          }
+        }
+      }
+    }
+  }
+}
