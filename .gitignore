@@ -1,0 +1,8 @@
+# JetBrains IDE project files
+.idea/
+
+# Local Claude Code settings
+.claude/settings.local.json
+
+# OS clutter
+.DS_Store
