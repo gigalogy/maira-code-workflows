@@ -43,15 +43,15 @@
           },
           "failure_path": {
             "type": "string",
-            "description": "Concrete inputs or state, the code path taken, and the wrong outcome."
+            "description": "GitHub-flavored Markdown. Concrete inputs or state, the code path taken, and the wrong outcome. Separate paragraphs with a blank line, and put any multi-line code excerpt in a fenced block with a language tag."
           },
           "evidence": {
             "type": "string",
-            "description": "What was read in the repository that proves the defect."
+            "description": "GitHub-flavored Markdown. What was read in the repository that proves the defect. At most three short paragraphs separated by blank lines. Put code excerpts in fenced blocks with a language tag (for example ```python), not in single-line inline code spans; reserve inline backticks for short identifiers, paths, and values."
           },
           "suggestion": {
             "type": "string",
-            "description": "The minimal fix."
+            "description": "GitHub-flavored Markdown. The minimal fix. When the fix is code, include the replacement in a fenced block with a language tag and keep any explanation in a short paragraph above it."
           },
           "confidence": {
             "type": "number",
