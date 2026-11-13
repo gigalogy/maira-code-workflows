@@ -867,6 +867,27 @@ jobs:
               const text = redact(value).replace(/\s+/g, ' ').trim();
               return text.length > max ? `${text.slice(0, max - 1)}…` : text;
             };
+            // Truncation can cut a fenced code block in half, and an unclosed
+            // fence makes everything after it render as code — swallowing the
+            // section that follows or the rest of the summary. Track the open
+            // fence (a closing fence is the same marker, at least as long, with
+            // no info string) and close it before publishing.
+            const closeFence = (value) => {
+              const text = String(value ?? '');
+              let open = null;
+              for (const line of text.split('\n')) {
+                const match = line.match(/^ {0,3}(`{3,}|~{3,})(.*)$/);
+                if (!match) continue;
+                if (open === null) {
+                  open = { marker: match[1][0], length: match[1].length };
+                } else if (match[1][0] === open.marker
+                  && match[1].length >= open.length
+                  && match[2].trim() === '') {
+                  open = null;
+                }
+              }
+              return open === null ? text : `${text}\n${open.marker.repeat(open.length)}`;
+            };
             const truncate = (value, max) => {
               const text = String(value ?? '').trim();
               return text.length > max ? `${text.slice(0, max - 1)}…` : text;
@@ -874,7 +895,7 @@ jobs:
             // Redact before truncating: a cut can split the key and defeat the
             // exact-match replacement, leaking its prefix. Truncating an
             // already-redacted string is safe.
-            const clean = (value, max) => truncate(redact(value), max);
+            const clean = (value, max) => closeFence(truncate(redact(value), max));
             const severityName = (severity) => severityLabel[severity] || String(severity);
             // Hidden marker so a later run can find and resolve this thread.
             const inlineMarker = '<!-- maira-lens-review -->';
@@ -882,9 +903,9 @@ jobs:
               inlineMarker,
               `### ${severityName(finding.severity)}`,
               `**${oneLine(finding.title, 300)}**`,
-              finding.failure_path ? `**Failure path**\n\n${String(finding.failure_path).trim()}` : null,
-              finding.evidence ? `**Evidence**\n\n${String(finding.evidence).trim()}` : null,
-              finding.suggestion ? `**Suggested fix**\n\n${String(finding.suggestion).trim()}` : null,
+              finding.failure_path ? `**Failure path**\n\n${closeFence(String(finding.failure_path).trim())}` : null,
+              finding.evidence ? `**Evidence**\n\n${closeFence(String(finding.evidence).trim())}` : null,
+              finding.suggestion ? `**Suggested fix**\n\n${closeFence(String(finding.suggestion).trim())}` : null,
               `<sub>${brand} · confidence ${Math.round((Number(finding.confidence) || 0) * 100)}%</sub>`,
             ].filter((part) => part !== null).join('\n\n');
 
@@ -982,7 +1003,7 @@ jobs:
             }, {});
 
             let body = `${marker}\n## ${brand} review\n\n`;
-            body += summaryText ? `${summaryText}\n\n` : '';
+            body += summaryText ? `${closeFence(summaryText)}\n\n` : '';
             if (findings.length === 0) {
               body += '_No defects met the reporting bar._\n';
             } else {
@@ -1037,7 +1058,7 @@ jobs:
             // margin so the marker and closing note still fit.
             const commentLimit = 60000;
             if (body.length > commentLimit) {
-              body = `${body.slice(0, commentLimit)}\n\n_…summary truncated to fit GitHub's comment limit._\n`;
+              body = `${closeFence(body.slice(0, commentLimit))}\n\n_…summary truncated to fit GitHub's comment limit._\n`;
             }
 
             const issue_number = context.payload.pull_request.number;
