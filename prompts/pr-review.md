@@ -41,6 +41,23 @@ If you cannot construct the failure path, drop the finding. Never report
 "consider", "might", "could be improved", naming, formatting, comment wording,
 missing docstrings, mechanical requests for tests, or hypothetical risks.
 
+## Suggested fixes
+
+A suggestion must be executable against code you can read.
+
+- Never propose calling a function, method, option, configuration key, event, or
+  message that you cannot find defined in the checkout or in a contract
+  document supplied in the review brief. Do not infer API surface from naming
+  conventions.
+- If the correct fix depends on an external service, another repository, a
+  hosted widget or iframe contract, or a protocol you cannot read, describe the
+  behaviour the fix needs instead of naming an API. Keep `confidence` below 0.7
+  so the finding is held back for a human rather than published with a fix that
+  cannot work.
+- Apply the suggestion to the code that would call it. If it would repeat a
+  side effect - append another script, register a second listener, re-send a
+  message, create a duplicate instance - do not propose it.
+
 ## Priorities
 
 Prioritise, in this order:

@@ -388,7 +388,8 @@ jobs:
                   confidence = 0.0
               path = str(item.get("path", "")).strip()
               title = str(item.get("title", "")).strip()
-              if not path or not title or confidence < 0.6 or line < 1:
+              # Keep in sync with prompts/pr-review.md: only >= 0.7 is published.
+              if not path or not title or confidence < 0.7 or line < 1:
                   continue
               cleaned.append(
                   {
@@ -514,17 +515,28 @@ jobs:
         env:
           PR_NUMBER: ${{ github.event.pull_request.number }}
           PR_TITLE: ${{ github.event.pull_request.title }}
+          PR_BODY: ${{ github.event.pull_request.body }}
         run: |
           set -euo pipefail
           tooling="Dependencies, when the repository defines them, were installed before this run unless the caller disabled installation. Detect the project's language and tooling from its manifests and run only commands the repository already defines (for example \`npm test\`, \`mvn test\`, \`composer test\`, or \`pytest\`). Do not install or upgrade anything. If a check needs a command that is not permitted, say so instead of working around it."
           {
-            cat /tmp/review/instructions.md
-            printf '\n\n## Pull request\n\n'
+            printf '## Pull request\n\n'
             printf 'Number: #%s\n' "$PR_NUMBER"
             printf 'Title: %s\n' "$PR_TITLE"
             printf 'Base: %s\n' "$(cat /tmp/review/base_sha)"
             printf 'Head: %s\n\n' "$(cat /tmp/review/head_sha)"
-            printf 'The repository is checked out at the PR head.\n%s\n\n' "$tooling"
+            body="${PR_BODY:-}"
+            if [ "${#body}" -gt 20000 ]; then
+              printf '### Description (truncated at 20 KB)\n\n%s\n\n' "${body:0:20000}"
+            else
+              printf '### Description\n\n%s\n\n' "$body"
+            fi
+          } > /tmp/review/pr-context.md
+          {
+            cat /tmp/review/instructions.md
+            printf '\n\n'
+            cat /tmp/review/pr-context.md
+            printf '\nThe repository is checked out at the PR head.\n%s\n\n' "$tooling"
             printf '### Changed files\n\n```\n'
             cat /tmp/review/files.txt
             printf '```\n\n### Diff\n\n```diff\n'
@@ -702,7 +714,9 @@ jobs:
           fi
           {
             cat /tmp/review/verify.md
-            printf '\n\n## Candidate findings\n\n```json\n'
+            printf '\n\n'
+            cat /tmp/review/pr-context.md
+            printf '\n## Candidate findings\n\n```json\n'
             head -c 100000 /tmp/review/findings.json
             printf '\n```\n'
           } > /tmp/review/verify-prompt.md
