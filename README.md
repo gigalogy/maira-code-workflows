@@ -19,10 +19,13 @@ troubleshooting.
 
 ## What it does
 
-1. **Finding pass** — reads the diff and the surrounding code, and reports at
-   most 10 defects that have a concrete failure path.
-2. **Verification pass** — adversarially tries to refute each candidate; only
-   findings that survive are published.
+1. **Finding pass** — reads the PR title, description, diff, and the
+   surrounding code, and reports at most 10 defects that have a concrete
+   failure path.
+2. **Verification pass** — adversarially tries to refute each candidate,
+   including checking that its suggested fix only uses APIs present in the
+   checkout or described in the repository brief; only findings that survive
+   are published.
 3. **Publishing** — posts inline comments on lines the diff added, and a
    summary comment for everything else, including severity counts, cost, model,
    and effort.
